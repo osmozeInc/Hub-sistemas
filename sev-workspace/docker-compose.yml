@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sev_postgres
+    restart: unless-stopped
+    ports:
+      - "5440:5432"
+    environment:
+      POSTGRES_DB: sev_workspace
+      POSTGRES_USER: sev_user
+      POSTGRES_PASSWORD: sev_secret_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sev_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: sev_workspace
+      DB_USERNAME: sev_user
+      DB_PASSWORD: sev_secret_password
+    depends_on:
+      - db
+
+  frontend:
+    image: node:20-alpine
+    container_name: sev_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host 0.0.0.0
+
+volumes:
+  pgdata:
