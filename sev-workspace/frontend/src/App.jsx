@@ -51,13 +51,13 @@ const INITIAL_PROJECTS = [
   }
 ];
 
-const DEV_SNIPPETS = [
+const DEFAULT_SNIPPETS = [
   {
-    id: 'snip-ga4',
+    type: 'snippet',
     title: 'Snippet Padrão Google Analytics 4 (GA4 + Evento de Clique)',
-    tag: 'Analytics',
+    category: 'Analytics',
     description: 'Inserir dentro da tag <head> em todas as páginas e subpáginas do cliente.',
-    code: `<!-- Google tag (gtag.js) -->
+    content: `<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -67,22 +67,22 @@ const DEV_SNIPPETS = [
 </script>`
   },
   {
-    id: 'snip-robots',
+    type: 'snippet',
     title: 'Template robots.txt Otimizado para GSC',
-    tag: 'SEO / Indexação',
+    category: 'SEO / Indexação',
     description: 'Padrão utilizado no repositório para liberar rastreamento e apontar o sitemap.',
-    code: `User-agent: *
+    content: `User-agent: *
 Allow: /
 Disallow: /admin/
 
 Sitemap: https://seudominio.com.br/sitemap.xml`
   },
   {
-    id: 'snip-sitemap',
+    type: 'snippet',
     title: 'Estrutura Base sitemap.xml (Múltiplas Rotas)',
-    tag: 'SEO / Indexação',
+    category: 'SEO / Indexação',
     description: 'Mapeamento da vitrine principal e subpáginas (/links, /orcamento, /roupas).',
-    code: `<?xml version="1.0" encoding="UTF-8"?>
+    content: `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://seudominio.com.br/</loc>
@@ -93,30 +93,34 @@ Sitemap: https://seudominio.com.br/sitemap.xml`
   }
 ];
 
-const REFERENCE_LINKS = [
+const DEFAULT_REFERENCES = [
   {
+    type: 'reference',
     title: 'Linear App Design System',
     category: 'UI / Dark Mode',
-    note: 'Referência de bordas translúcidas (border-white/10), contraste tipográfico e fundos escuros.',
-    url: 'https://linear.app'
+    description: 'Referência de bordas translúcidas (border-white/10), contraste tipográfico e fundos escuros.',
+    content: 'https://linear.app'
   },
   {
+    type: 'reference',
     title: 'Vercel Geist Design & Grids',
     category: 'Arquitetura Visual',
-    note: 'Uso de malhas técnicas (Dot Matrix / Grid lines) e medidores de performance.',
-    url: 'https://vercel.com/geist/introduction'
+    description: 'Uso de malhas técnicas (Dot Matrix / Grid lines) e medidores de performance.',
+    content: 'https://vercel.com/geist/introduction'
   },
   {
+    type: 'reference',
     title: 'PageSpeed Insights / Lighthouse',
     category: 'Auditoria Técnica',
-    note: 'Validador oficial para testar Core Web Vitals antes de entregar a página ao cliente.',
-    url: 'https://pagespeed.web.dev/'
+    description: 'Validador oficial para testar Core Web Vitals antes de entregar a página ao cliente.',
+    content: 'https://pagespeed.web.dev/'
   },
   {
+    type: 'reference',
     title: 'Google Search Console (GSC)',
     category: 'Indexação & SEO',
-    note: 'Painel para submissão de sitemap.xml e inspeção de URLs dos clientes.',
-    url: 'https://search.google.com/search-console'
+    description: 'Painel para submissão de sitemap.xml e inspeção de URLs dos clientes.',
+    content: 'https://search.google.com/search-console'
   }
 ];
 
@@ -138,6 +142,21 @@ const EMPTY_PROJECT_TEMPLATE = {
     tools: { ga4: false, gsc: false, sitemap: false, robots: false }
   },
   analyticsSummary: { period: 'Mês Atual', totalClicks: 0, whatsappClicks: 0, topPage: '/index.html' }
+};
+
+// Mapeia o texto do estágio para um rótulo legível e cor de indicador
+const getStageMeta = (status) => {
+  const s = (status || '').toLowerCase();
+  if (s === 'active' || s.includes('saud') || s.includes('online') || s.includes('prod')) {
+    return { label: status === 'active' ? '100% Saudável' : status, dot: 'bg-emerald-400', badge: 'Online' };
+  }
+  if (s === 'warning' || s.includes('pend') || s.includes('alerta') || s.includes('revis')) {
+    return { label: status === 'warning' ? 'Com Pendência' : status, dot: 'bg-amber-400 animate-pulse', badge: 'Pendência' };
+  }
+  if (s === 'dev' || s.includes('dev') || s.includes('desenv') || s.includes(' Homolog')) {
+    return { label: status === 'dev' ? 'Em Desenvolvimento' : status, dot: 'bg-indigo-400', badge: 'Em Dev' };
+  }
+  return { label: status || 'Customizado', dot: 'bg-cyan-400', badge: status || 'Ativo' };
 };
 
 const normalizeProject = (p) => ({
@@ -203,11 +222,228 @@ function CircularLighthouseGauge({ score, label }) {
   );
 }
 
+// ============================================================================
+// COMPONENTE: PAINEL PÚBLICO DE VISÃO DO CLIENTE (MODO APRESENTAÇÃO)
+// ============================================================================
+function PublicClientPortal({ token }) {
+  const [project, setProject] = useState(null);
+  const [error, setError] = useState(false);
+  const [copiedHex, setCopiedHex] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/public/${token}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Link inválido');
+        return res.json();
+      })
+      .then((data) => setProject(data))
+      .catch(() => setError(true));
+  }, [token]);
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-rose-400 font-mono text-sm">
+        [ LINK DE RELATÓRIO INVÁLIDO OU EXPIRADO ]
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-cyan-400 font-mono text-sm">
+        [ CARREGANDO RELATÓRIO TÉCNICO DO CLIENTE... ]
+      </div>
+    );
+  }
+
+  const copyColor = (hex) => {
+    navigator.clipboard.writeText(hex);
+    setCopiedHex(hex);
+    setTimeout(() => setCopiedHex(null), 1500);
+  };
+
+  return (
+    <div className="fixed inset-0 w-full h-full overflow-y-auto bg-slate-950 text-slate-100 font-sans p-4 sm:p-8">
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(#ffffff12_1px,transparent_1px)] [background-size:20px_20px]" />
+
+      <div className="relative z-10 max-w-6xl mx-auto space-y-6">
+        {/* Topbar da Agência */}
+        <header className="px-5 py-3.5 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="px-3 py-1 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 font-bold text-xs flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>SEV MARKET · RELATÓRIO DO CLIENTE</span>
+            </div>
+            <span className="text-xs text-slate-400 hidden sm:inline">
+              Ambiente de Transparência & Auditoria Técnica
+            </span>
+          </div>
+          <div className="text-xs font-mono text-slate-400">
+            Atualizado em: <span className="text-slate-200">{project.updatedAt || 'Tempo real'}</span>
+          </div>
+        </header>
+
+        {/* Hero do Cliente */}
+        <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="px-2.5 py-0.5 text-[11px] font-semibold uppercase rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+              {project.category}
+            </span>
+            <h1 className="text-3xl font-bold text-white mt-2">{project.title}</h1>
+            <p className="text-sm text-slate-400 mt-0.5">{project.subtitle}</p>
+          </div>
+          {project.domain?.current && (
+            <a
+              href={`https://${project.domain.current}`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/35 text-cyan-200 text-xs font-semibold flex items-center gap-2 transition self-start sm:self-center"
+            >
+              <Globe className="w-4 h-4" />
+              <span>Acessar {project.domain.current}</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
+        </div>
+
+        {/* Grid de 3 Colunas Limpo */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Coluna 1: Métricas GA4 e Rotas */}
+          <div className="space-y-6">
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 border border-cyan-500/25">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-cyan-300 mb-3">
+                Desempenho & Tráfego ({project.analyticsSummary?.period || 'Mês Atual'})
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-black/40 border border-white/10">
+                  <span className="text-[10px] uppercase text-slate-400">Acessos Totais</span>
+                  <p className="text-2xl font-bold font-mono text-white mt-1">
+                    {project.analyticsSummary?.totalClicks || 0}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-black/40 border border-white/10">
+                  <span className="text-[10px] uppercase text-slate-400">Cliques WhatsApp</span>
+                  <p className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+                    {project.analyticsSummary?.whatsappClicks || 0}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-300 mt-3">
+                Página mais visitada: <code className="text-cyan-300 font-mono">{project.analyticsSummary?.topPage || '/'}</code>
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-4">
+                Páginas & Rotas Ativas
+              </h2>
+              <div className="space-y-2.5">
+                {(project.routes || []).map((rt, i) => (
+                  <div key={i} className="p-3 rounded-xl bg-black/35 border border-white/5 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-white">{rt.name}</p>
+                      <span className="text-[11px] font-mono text-indigo-300">{rt.path}</span>
+                    </div>
+                    <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      Online
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Coluna 2: Lighthouse Core Web Vitals */}
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+              Auditoria Google Lighthouse
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              <CircularLighthouseGauge score={project.health?.lighthouse?.perf || 0} label="Performance" />
+              <CircularLighthouseGauge score={project.health?.lighthouse?.seo || 0} label="SEO Técnico" />
+              <CircularLighthouseGauge score={project.health?.lighthouse?.best || 0} label="Boas Práticas" />
+              <CircularLighthouseGauge score={project.health?.lighthouse?.a11y || 0} label="Acessibilidade" />
+            </div>
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              {[
+                { key: 'ga4', label: 'Rastreamento Google Analytics 4' },
+                { key: 'gsc', label: 'Indexação Google Search Console' },
+                { key: 'sitemap', label: 'Mapa de Rotas (sitemap.xml)' },
+                { key: 'robots', label: 'Permissões de Busca (robots.txt)' }
+              ].map((t) => {
+                const ok = project.health?.tools?.[t.key];
+                return (
+                  <div key={t.key} className="flex items-center justify-between p-2.5 rounded-xl bg-black/30 border border-white/5 text-xs">
+                    <span className="text-slate-300">{t.label}</span>
+                    <span className={ok ? 'text-emerald-400 font-semibold' : 'text-amber-400'}>
+                      {ok ? 'Verificado' : 'Em ajuste'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Coluna 3: Identidade Visual & Ficha Pública */}
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-5">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">
+                Paleta Oficial do Projeto
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                {(project.palette || []).map((c, i) => (
+                  <button
+                    key={i}
+                    onClick={() => copyColor(c.hex)}
+                    className="flex items-center gap-2.5 p-2 rounded-xl bg-black/35 border border-white/5 hover:border-white/20 text-left"
+                  >
+                    <span className="w-6 h-6 rounded-lg border border-white/20 shrink-0" style={{ backgroundColor: c.hex }} />
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-white truncate">{c.name}</p>
+                      <p className="text-[10px] font-mono text-slate-400">{copiedHex === c.hex ? 'Copiado!' : c.hex}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-white/10">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">
+                Ficha & Registros
+              </h2>
+              <div className="space-y-2">
+                {(project.dossier || []).map((d, i) => (
+                  <div key={i} className="p-3 rounded-xl bg-black/35 border border-white/5">
+                    <span className="text-[10px] uppercase text-cyan-400 font-semibold">{d.category}</span>
+                    <span className="text-[11px] text-slate-400"> · {d.label}</span>
+                    <p className="text-xs font-mono text-slate-100 mt-1 break-all">{d.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectWorkspaceHub() {
   const [projects, setProjects] = useState([]);
   const [reminders, setReminders] = useState([]);
+  const [resources, setResources] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuditing, setIsAuditing] = useState(false);
+
+  // Categorias e Estágios customizáveis (persistem junto com os projetos e localStorage)
+  const [customCategories, setCustomCategories] = useState(() => {
+    const saved = localStorage.getItem('sev_custom_categories');
+    return saved ? JSON.parse(saved) : ['Vitrine', 'Institucional', 'Landing Page', 'Sistema Web'];
+  });
+  const [customStages, setCustomStages] = useState(() => {
+    const saved = localStorage.getItem('sev_custom_stages');
+    return saved ? JSON.parse(saved) : ['active', 'warning', 'dev'];
+  });
 
   const [selectedProjectId, setSelectedProjectId] = useState('sev-market');
   const [globalModule, setGlobalModule] = useState('project');
@@ -219,16 +455,50 @@ export default function ProjectWorkspaceHub() {
   const [auditFilter, setAuditFilter] = useState('all');
 
   const [copiedKey, setCopiedKey] = useState(null);
+
+  // Estados do formulário de Lembretes (Agora com Select de Projeto!)
+  const [newReminderProjectId, setNewReminderProjectId] = useState('');
   const [newReminderText, setNewReminderText] = useState('');
   const [newReminderFreq, setNewReminderFreq] = useState('Mensal · Todo dia 05');
 
-  // Estados do Modal de Criação / Edição Completa
+  // Estados do Modal de Projeto
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editorMode, setEditorMode] = useState('edit'); // 'create' | 'edit'
-  const [editorTab, setEditorTab] = useState('geral'); // 'geral' | 'ficha' | 'rotas' | 'seo'
+  const [editorMode, setEditorMode] = useState('edit');
+  const [editorTab, setEditorTab] = useState('geral');
   const [draftProject, setDraftProject] = useState(EMPTY_PROJECT_TEMPLATE);
   const [tagsInput, setTagsInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [isAddingStage, setIsAddingStage] = useState(false);
+  const [newStageInput, setNewStageInput] = useState('');
+
+  // Estados do Modal de Recursos (Snippets do Guia de Dev & Referências)
+  const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
+  const [resourceMode, setResourceMode] = useState('create'); // 'create' | 'edit'
+  const [draftResource, setDraftResource] = useState({
+    id: null,
+    type: 'snippet',
+    title: '',
+    category: '',
+    description: '',
+    content: ''
+  });
+
+  const [isSyncingGa4, setIsSyncingGa4] = useState(false);
+
+
+  // Lista unificada de Categorias (Padrões + Criadas pelo usuário + Presentes nos projetos)
+  const allCategories = useMemo(() => {
+    const fromProjects = projects.map((p) => p.category).filter(Boolean);
+    return Array.from(new Set([...customCategories, ...fromProjects]));
+  }, [customCategories, projects]);
+
+  // Lista unificada de Estágios
+  const allStages = useMemo(() => {
+    const fromProjects = projects.map((p) => p.status).filter(Boolean);
+    return Array.from(new Set([...customStages, ...fromProjects]));
+  }, [customStages, projects]);
 
   const fetchWorkspaceData = () => {
     setIsLoading(true);
@@ -240,10 +510,19 @@ export default function ProjectWorkspaceHub() {
       .then((data) => {
         const normProjects = (data.projects || []).map(normalizeProject);
         const normReminders = (data.reminders || []).map(normalizeReminder);
+        const fetchedResources = data.resources || [];
+
         setProjects(normProjects.length ? normProjects : INITIAL_PROJECTS);
         setReminders(normReminders);
-        if (normProjects.length > 0 && !normProjects.some((p) => p.id === selectedProjectId)) {
-          setSelectedProjectId(normProjects[0].id);
+        setResources(fetchedResources);
+
+        if (normProjects.length > 0) {
+          if (!normProjects.some((p) => p.id === selectedProjectId)) {
+            setSelectedProjectId(normProjects[0].id);
+          }
+          if (!newReminderProjectId) {
+            setNewReminderProjectId(normProjects[0].id);
+          }
         }
         setIsLoading(false);
       })
@@ -263,6 +542,16 @@ export default function ProjectWorkspaceHub() {
     [projects, selectedProjectId]
   );
 
+  // Separa os recursos do banco entre Snippets e Referências
+  const snippetsList = useMemo(
+    () => resources.filter((r) => r.type === 'snippet'),
+    [resources]
+  );
+  const referencesList = useMemo(
+    () => resources.filter((r) => r.type === 'reference'),
+    [resources]
+  );
+
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
       const matchesSearch =
@@ -272,15 +561,10 @@ export default function ProjectWorkspaceHub() {
 
       const matchesChip =
         categoryChip === 'Todos' ||
-        (categoryChip === 'Ativos' && p.status !== 'dev') ||
-        (categoryChip === 'Em Dev' && p.status === 'dev') ||
         (p.category || '').toLowerCase() === categoryChip.toLowerCase();
 
       const matchesStage =
-        stageFilter === 'all' ||
-        (stageFilter === 'active' && p.status === 'active') ||
-        (stageFilter === 'warning' && p.status === 'warning') ||
-        (stageFilter === 'dev' && p.status === 'dev');
+        stageFilter === 'all' || p.status === stageFilter;
 
       const matchesAudit =
         auditFilter === 'all' ||
@@ -292,9 +576,45 @@ export default function ProjectWorkspaceHub() {
     });
   }, [projects, searchQuery, categoryChip, stageFilter, auditFilter]);
 
+  const clientToken = new URLSearchParams(window.location.search).get('client_token');
+  if (clientToken) {
+    return <PublicClientPortal token={clientToken} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 w-full h-full flex items-center justify-center bg-slate-950 text-cyan-400 font-mono text-sm">
+        [ CONECTANDO AO SERVIDOR VPS... ]
+      </div>
+    );
+  }
+
   const pendingRemindersCount = reminders.filter((r) => !r.completed).length;
 
-  // Abrir Modal para Criar Novo Projeto
+  // Adicionar Nova Categoria Customizada
+  const handleAddCustomCategory = () => {
+    const val = newCategoryInput.trim();
+    if (!val) return;
+    const updated = Array.from(new Set([...customCategories, val]));
+    setCustomCategories(updated);
+    localStorage.setItem('sev_custom_categories', JSON.stringify(updated));
+    setDraftProject({ ...draftProject, category: val });
+    setNewCategoryInput('');
+    setIsAddingCategory(false);
+  };
+
+  // Adicionar Novo Estágio Customizado
+  const handleAddCustomStage = () => {
+    const val = newStageInput.trim();
+    if (!val) return;
+    const updated = Array.from(new Set([...customStages, val]));
+    setCustomStages(updated);
+    localStorage.setItem('sev_custom_stages', JSON.stringify(updated));
+    setDraftProject({ ...draftProject, status: val, statusText: val });
+    setNewStageInput('');
+    setIsAddingStage(false);
+  };
+
   const openCreateModal = () => {
     const fresh = JSON.parse(JSON.stringify(EMPTY_PROJECT_TEMPLATE));
     setDraftProject(fresh);
@@ -304,7 +624,6 @@ export default function ProjectWorkspaceHub() {
     setIsEditorOpen(true);
   };
 
-  // Abrir Modal para Editar Projeto Selecionado
   const openEditModal = (proj = selectedProject) => {
     const clone = JSON.parse(JSON.stringify(proj));
     setDraftProject(clone);
@@ -314,7 +633,6 @@ export default function ProjectWorkspaceHub() {
     setIsEditorOpen(true);
   };
 
-  // Salvar Projeto (POST se novo, PATCH se edição)
   const handleSaveProject = (e) => {
     e.preventDefault();
     if (!draftProject.title.trim()) return;
@@ -359,7 +677,6 @@ export default function ProjectWorkspaceHub() {
       });
   };
 
-  // Excluir Projeto
   const handleDeleteProject = () => {
     if (!window.confirm(`Tem certeza que deseja excluir o projeto "${draftProject.title}"?`)) return;
 
@@ -371,6 +688,77 @@ export default function ProjectWorkspaceHub() {
         setIsEditorOpen(false);
       })
       .catch((err) => console.error('Erro ao excluir:', err));
+  };
+
+  // =========================================================================
+  // CRUD DO GUIA DE DEV (SNIPPETS) E REFERÊNCIAS
+  // =========================================================================
+  const openCreateResourceModal = (type) => {
+    setResourceMode('create');
+    setDraftResource({
+      id: null,
+      type,
+      title: '',
+      category: type === 'snippet' ? 'Analytics / SEO' : 'UI / Design',
+      description: '',
+      content: ''
+    });
+    setIsResourceModalOpen(true);
+  };
+
+  const openEditResourceModal = (item) => {
+    setResourceMode('edit');
+    setDraftResource({ ...item });
+    setIsResourceModalOpen(true);
+  };
+
+  const handleSaveResource = (e) => {
+    e.preventDefault();
+    if (!draftResource.title.trim() || !draftResource.content.trim()) return;
+
+    const isCreate = resourceMode === 'create';
+    const url = isCreate ? `${API_BASE}/resources` : `${API_BASE}/resources/${draftResource.id}`;
+    const method = isCreate ? 'POST' : 'PATCH';
+
+    fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(draftResource)
+    })
+      .then((res) => res.json())
+      .then((saved) => {
+        if (isCreate) {
+          setResources((prev) => [...prev, saved]);
+        } else {
+          setResources((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+        }
+        setIsResourceModalOpen(false);
+      })
+      .catch((err) => console.error('Erro ao salvar recurso:', err));
+  };
+
+  const handleDeleteResource = (id) => {
+    if (!window.confirm('Deseja excluir este bloco permanentemente?')) return;
+    fetch(`${API_BASE}/resources/${id}`, { method: 'DELETE' })
+      .then(() => {
+        setResources((prev) => prev.filter((r) => r.id !== id));
+      })
+      .catch((err) => console.error('Erro ao excluir recurso:', err));
+  };
+
+  const seedDefaultResources = async (type) => {
+    const defaults = type === 'snippet' ? DEFAULT_SNIPPETS : DEFAULT_REFERENCES;
+    for (const item of defaults) {
+      const res = await fetch(`${API_BASE}/resources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setResources((prev) => [...prev, created]);
+      }
+    }
   };
 
   const handleCopy = (text, idKey) => {
@@ -411,13 +799,59 @@ export default function ProjectWorkspaceHub() {
       .catch(() => setIsAuditing(false));
   };
 
+
+  const handleSyncGa4 = () => {
+    setIsSyncingGa4(true);
+    fetch(`${API_BASE}/projects/${selectedProject.id}/ga4`, { method: 'POST' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erro ao sincronizar GA4');
+        }
+        return res.json();
+      })
+      .then((updatedProj) => {
+        const normalized = normalizeProject(updatedProj);
+        setProjects((prev) => prev.map((p) => (p.id === normalized.id ? normalized : p)));
+        setIsSyncingGa4(false);
+        alert('Métricas atualizadas com sucesso direto do Google!');
+      })
+      .catch((err) => {
+        alert(err.message);
+        setIsSyncingGa4(false);
+      });
+  };
+
+  const handleShareClientPortal = () => {
+    const existingToken = selectedProject.domain?.share_token;
+    if (existingToken) {
+      const url = `${window.location.origin}/?client_token=${existingToken}`;
+      handleCopy(url, `share-${selectedProject.id}`);
+      return;
+    }
+
+    fetch(`${API_BASE}/projects/${selectedProject.id}/share-token`, { method: 'POST' })
+      .then((res) => res.json())
+      .then((updated) => {
+        const norm = normalizeProject(updated);
+        setProjects((prev) => prev.map((p) => (p.id === norm.id ? norm : p)));
+        const url = `${window.location.origin}/?client_token=${norm.domain.share_token}`;
+        handleCopy(url, `share-${selectedProject.id}`);
+      });
+  };
+
+  // Criar Lembrete usando o Projeto escolhido no Select!
   const handleAddReminder = (e) => {
     e.preventDefault();
     if (!newReminderText.trim()) return;
 
+    const targetId = newReminderProjectId || selectedProject.id;
+    const targetObj = projects.find((p) => p.id === targetId);
+    const targetTitle = targetId === 'geral-agencia' ? 'Geral / Sev Market' : (targetObj?.title || selectedProject.title);
+
     const payload = {
-      project_id: selectedProject.id,
-      project_title: selectedProject.title,
+      project_id: targetId === 'geral-agencia' ? selectedProject.id : targetId,
+      project_title: targetTitle,
       title: newReminderText.trim(),
       frequency: newReminderFreq,
       category: 'Operação'
@@ -457,6 +891,8 @@ export default function ProjectWorkspaceHub() {
       </div>
     );
   }
+
+  const activeStageMeta = getStageMeta(selectedProject.status);
 
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-950 text-slate-100 text-left font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -593,7 +1029,6 @@ export default function ProjectWorkspaceHub() {
           <div className="flex-1 overflow-y-auto pr-1.5 space-y-5">
             {globalModule === 'project' && (
               <>
-                {/* HERO DO PROJETO + BOTÃO EDITAR E DOMÍNIO FUTURO CONDICIONAL */}
                 <div className="p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2.5">
@@ -601,16 +1036,8 @@ export default function ProjectWorkspaceHub() {
                         {selectedProject.category}
                       </span>
                       <span className="text-xs text-slate-400 flex items-center gap-1.5">
-                        <span
-                          className={`h-2 w-2 rounded-full ${
-                            selectedProject.status === 'active'
-                              ? 'bg-emerald-400'
-                              : selectedProject.status === 'warning'
-                              ? 'bg-amber-400'
-                              : 'bg-indigo-400'
-                          }`}
-                        />
-                        {selectedProject.statusText}
+                        <span className={`h-2 w-2 rounded-full ${activeStageMeta.dot}`} />
+                        {selectedProject.statusText || activeStageMeta.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -624,11 +1051,26 @@ export default function ProjectWorkspaceHub() {
                         <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
                         <span>Editar Projeto</span>
                       </button>
+                      <button
+                        onClick={handleShareClientPortal}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs text-emerald-200 flex items-center gap-1.5 transition"
+                      >
+                        {copiedKey === `share-${selectedProject.id}` ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Link Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Link do Cliente</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                     <p className="text-xs text-slate-400">{selectedProject.subtitle}</p>
                   </div>
 
-                  {/* Bloco de Domínio: Oculta Domínio Futuro caso já tenha o domínio ideal */}
                   <div className="flex items-center gap-3 bg-black/35 p-3 rounded-xl border border-white/10">
                     <div className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -855,15 +1297,25 @@ export default function ProjectWorkspaceHub() {
                             <Send className="w-3.5 h-3.5" />
                             Resumo GA4 p/ WhatsApp
                           </span>
-                          <button
-                            onClick={() => {
-                              openEditModal(selectedProject);
-                              setEditorTab('seo');
-                            }}
-                            className="text-[10px] font-mono text-cyan-300 underline"
-                          >
-                            Editar Métricas ({selectedProject.analyticsSummary.period})
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={handleSyncGa4}
+                              disabled={isSyncingGa4}
+                              className="text-[10px] font-mono text-emerald-300 flex items-center gap-1 hover:text-emerald-200 transition"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${isSyncingGa4 ? 'animate-spin' : ''}`} />
+                              {isSyncingGa4 ? 'Sincronizando...' : 'Auto Sync GA4'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                openEditModal(selectedProject);
+                                setEditorTab('seo');
+                              }}
+                              className="text-[10px] font-mono text-cyan-300 underline"
+                            >
+                              Editar Manualmente
+                            </button>
+                          </div>
                         </div>
                         <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
                           Cliques totais: <strong>{selectedProject.analyticsSummary.totalClicks}</strong> · WhatsApp: <strong>{selectedProject.analyticsSummary.whatsappClicks}</strong> · Destaque: <code className="text-cyan-300">{selectedProject.analyticsSummary.topPage}</code>
@@ -980,44 +1432,83 @@ export default function ProjectWorkspaceHub() {
               </>
             )}
 
-            {/* MODO 2: LEMBRETES */}
+            {/* ===============================================================
+                MODO 2: LEMBRETES (AGORA COM SELECT DE PROJETO DIRETO NO FORM!)
+            =============================================================== */}
             {globalModule === 'reminders' && (
               <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
-                <div className="mb-6">
+                <div className="mb-8">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
                     <CalendarClock className="w-6 h-6 text-amber-400" />
                     <span>Central de Lembretes & Entregas Recorrentes</span>
                   </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Gerencie envios de relatórios de cliques do GA4, renovações de domínio e checklists pendentes.
+                  <p className="text-xs text-slate-400 mt-1.5">
+                    Escolha o projeto no seletor abaixo e agende tarefas sem precisar sair desta guia.
                   </p>
                 </div>
 
-                <form onSubmit={handleAddReminder} className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-xl bg-black/40 border border-white/10">
-                  <input
-                    type="text"
-                    value={newReminderText}
-                    onChange={(e) => setNewReminderText(e.target.value)}
-                    placeholder={`Nova tarefa ou lembrete para ${selectedProject.title}...`}
-                    className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400"
-                  />
-                  <select
-                    value={newReminderFreq}
-                    onChange={(e) => setNewReminderFreq(e.target.value)}
-                    className="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400"
-                  >
-                    <option value="Mensal · Todo dia 05">Mensal · Todo dia 05</option>
-                    <option value="Quinzenal">Quinzenal</option>
-                    <option value="Urgente · Único">Urgente · Único</option>
-                    <option value="Pré-Deploy">Pré-Deploy</option>
-                  </select>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Agendar em {selectedProject.title}</span>
-                  </button>
+                <form onSubmit={handleAddReminder} className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-8 p-4 rounded-xl bg-black/40 border border-white/10">
+                  {/* Select do Projeto */}
+                  <div className="md:col-span-3">
+                    <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                      Projeto / Cliente
+                    </label>
+                    <select
+                      value={newReminderProjectId || selectedProject.id}
+                      onChange={(e) => setNewReminderProjectId(e.target.value)}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-cyan-200 font-medium focus:outline-none focus:border-cyan-400"
+                    >
+                      {projects.map((proj) => (
+                        <option key={proj.id} value={proj.id}>
+                          {proj.title}
+                        </option>
+                      ))}
+                      <option value="geral-agencia">Geral / Agência</option>
+                    </select>
+                  </div>
+
+                  {/* Descrição do Lembrete */}
+                  <div className="md:col-span-5">
+                    <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                      Tarefa ou Entrega
+                    </label>
+                    <input
+                      type="text"
+                      value={newReminderText}
+                      onChange={(e) => setNewReminderText(e.target.value)}
+                      placeholder="Ex: Enviar relatório mensal de cliques GA4..."
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  {/* Frequência */}
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                      Frequência
+                    </label>
+                    <select
+                      value={newReminderFreq}
+                      onChange={(e) => setNewReminderFreq(e.target.value)}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400"
+                    >
+                      <option value="Mensal · Todo dia 05">Mensal · Dia 05</option>
+                      <option value="Quinzenal">Quinzenal</option>
+                      <option value="Semanal">Semanal</option>
+                      <option value="Urgente · Único">Urgente · Único</option>
+                      <option value="Pré-Deploy">Pré-Deploy</option>
+                    </select>
+                  </div>
+
+                  {/* Botão Agendar */}
+                  <div className="md:col-span-2 flex items-end">
+                    <button
+                      type="submit"
+                      className="w-full py-2 px-4 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Agendar</span>
+                    </button>
+                  </div>
                 </form>
 
                 <div className="space-y-3">
@@ -1066,96 +1557,203 @@ export default function ProjectWorkspaceHub() {
               </div>
             )}
 
-            {/* MODO 3: GUIA DEV */}
+            {/* ===============================================================
+                MODO 3: GUIA DEV (ESPAÇAMENTO CORRIGIDO + CRUD COMPLETO)
+            =============================================================== */}
             {globalModule === 'devguide' && (
               <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2.5 mb-1">
-                  <Terminal className="w-6 h-6 text-indigo-400" />
-                  <span>Guia de Desenvolvimento & Snippets de Implantação</span>
-                </h2>
-                <p className="text-xs text-slate-400 mb-6">
-                  Blocos de código padronizados para colar rapidamente nos projetos estáticos ou sistemas na VPS.
-                </p>
-
-                <div className="space-y-4">
-                  {DEV_SNIPPETS.map((snip) => (
-                    <div key={snip.id} className="p-4 rounded-xl bg-black/45 border border-white/10 text-left">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            {snip.tag}
-                          </span>
-                          <h3 className="text-sm font-semibold text-white mt-1.5">{snip.title}</h3>
-                          <p className="text-xs text-slate-400">{snip.description}</p>
-                        </div>
-                        <button
-                          onClick={() => handleCopy(snip.code, snip.id)}
-                          className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-indigo-500/20 border border-white/10 text-xs text-slate-200 flex items-center gap-1.5 transition"
-                        >
-                          {copiedKey === snip.id ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>Copiado</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copiar Código</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <pre className="mt-3 p-3.5 rounded-lg bg-[#030508] border border-white/5 text-[11px] font-mono text-cyan-200 overflow-x-auto text-left">
-                        <code>{snip.code}</code>
-                      </pre>
-                    </div>
-                  ))}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-white/10">
+                  <div>
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                      <Terminal className="w-6 h-6 text-indigo-400" />
+                      <span>Guia de Desenvolvimento & Snippets de Implantação</span>
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-2">
+                      Blocos de código padronizados para colar rapidamente nos projetos estáticos ou sistemas na VPS.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {snippetsList.length === 0 && (
+                      <button
+                        onClick={() => seedDefaultResources('snippet')}
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition"
+                      >
+                        Carregar Snippets Padrão
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openCreateResourceModal('snippet')}
+                      className="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/35 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Novo Snippet</span>
+                    </button>
+                  </div>
                 </div>
+
+                {snippetsList.length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-black/35 border border-white/5 text-center space-y-3">
+                    <p className="text-xs text-slate-400">
+                      Nenhum snippet salvo no banco ainda. Clique em "Carregar Snippets Padrão" ou crie o seu primeiro bloco!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    {snippetsList.map((snip) => (
+                      <div key={snip.id} className="p-5 rounded-xl bg-black/45 border border-white/10 text-left">
+                        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                          <div>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                              {snip.category}
+                            </span>
+                            <h3 className="text-sm font-semibold text-white mt-2">{snip.title}</h3>
+                            {snip.description && (
+                              <p className="text-xs text-slate-400 mt-1">{snip.description}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleCopy(snip.content, `snip-${snip.id}`)}
+                              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-indigo-500/20 border border-white/10 text-xs text-slate-200 flex items-center gap-1.5 transition"
+                            >
+                              {copiedKey === `snip-${snip.id}` ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Copiado</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Copiar Código</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openEditResourceModal(snip)}
+                              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-300 border border-white/10 transition"
+                              title="Editar Snippet"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteResource(snip.id)}
+                              className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 border border-white/10 transition"
+                              title="Excluir Snippet"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <pre className="mt-3 p-4 rounded-xl bg-[#030508] border border-white/5 text-[11px] font-mono text-cyan-200 overflow-x-auto text-left">
+                          <code>{snip.content}</code>
+                        </pre>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* MODO 4: REFERÊNCIAS */}
+            {/* ===============================================================
+                MODO 4: REFERÊNCIAS (ESPAÇAMENTO CORRIGIDO + CRUD COMPLETO)
+            =============================================================== */}
             {globalModule === 'refs' && (
               <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2.5 mb-1">
-                  <Bookmark className="w-6 h-6 text-emerald-400" />
-                  <span>Banco de Referências & Ferramentas de Auditoria</span>
-                </h2>
-                <p className="text-xs text-slate-400 mb-6">
-                  Links rápidos para inspiração visual e validação de páginas antes da entrega ao cliente.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {REFERENCE_LINKS.map((ref, idx) => (
-                    <a
-                      key={idx}
-                      href={ref.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group p-4 rounded-xl bg-black/40 hover:bg-white/[0.05] border border-white/10 hover:border-emerald-400/40 transition flex flex-col justify-between text-left"
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-white/10">
+                  <div>
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                      <Bookmark className="w-6 h-6 text-emerald-400" />
+                      <span>Banco de Referências & Ferramentas de Auditoria</span>
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-2">
+                      Links rápidos para inspiração visual e validação de páginas antes da entrega ao cliente.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {referencesList.length === 0 && (
+                      <button
+                        onClick={() => seedDefaultResources('reference')}
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition"
+                      >
+                        Carregar Links Padrão
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openCreateResourceModal('reference')}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/35 text-xs font-semibold text-emerald-200 flex items-center gap-1.5 transition"
                     >
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400">
-                            {ref.category}
-                          </span>
-                          <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-300 transition" />
-                        </div>
-                        <h3 className="text-sm font-bold text-white mt-1 group-hover:text-emerald-200">
-                          {ref.title}
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{ref.note}</p>
-                      </div>
-                    </a>
-                  ))}
+                      <Plus className="w-4 h-4" />
+                      <span>Nova Referência</span>
+                    </button>
+                  </div>
                 </div>
+
+                {referencesList.length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-black/35 border border-white/5 text-center space-y-3">
+                    <p className="text-xs text-slate-400">
+                      Nenhuma referência cadastrada ainda. Clique em "Carregar Links Padrão" ou adicione uma nova!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {referencesList.map((ref) => (
+                      <div
+                        key={ref.id}
+                        className="group p-5 rounded-xl bg-black/40 hover:bg-white/[0.04] border border-white/10 hover:border-emerald-400/40 transition flex flex-col justify-between text-left"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                              {ref.category}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => openEditResourceModal(ref)}
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-300 transition"
+                                title="Editar Referência"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteResource(ref.id)}
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition"
+                                title="Excluir Referência"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                              <a
+                                href={ref.content}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 transition"
+                                title="Abrir Link"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          </div>
+                          <h3 className="text-sm font-bold text-white mt-3">{ref.title}</h3>
+                          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{ref.description}</p>
+                        </div>
+                        <a
+                          href={ref.content}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 pt-3 border-t border-white/5 text-[11px] font-mono text-emerald-400/90 hover:text-emerald-300 truncate block"
+                        >
+                          {ref.content}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
         </main>
 
         {/* ===================================================================
-            COLUNA DIREITA: FEED DE PROJETOS
+            COLUNA DIREITA: FEED DE PROJETOS (CHIPS DINÂMICOS DE CATEGORIA)
         =================================================================== */}
         <section className="lg:col-span-3 xl:col-span-1 flex flex-col h-full min-w-0 overflow-hidden lg:border-l border-white/10 lg:pl-5">
           <div className="space-y-3 mb-4 shrink-0">
@@ -1183,7 +1781,7 @@ export default function ProjectWorkspaceHub() {
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-              {['Todos', 'Ativos', 'Em Dev', 'Vitrine', 'Institucional'].map((chip) => (
+              {['Todos', ...allCategories].map((chip) => (
                 <button
                   key={chip}
                   onClick={() => setCategoryChip(chip)}
@@ -1202,6 +1800,7 @@ export default function ProjectWorkspaceHub() {
           <div className="flex-1 overflow-y-auto pr-1.5 space-y-3.5">
             {filteredProjects.map((project) => {
               const isSelected = project.id === selectedProject.id && globalModule === 'project';
+              const stMeta = getStageMeta(project.status);
               return (
                 <article
                   key={project.id}
@@ -1224,17 +1823,9 @@ export default function ProjectWorkspaceHub() {
                     <div className="absolute inset-0 bg-gradient-to-t from-[#05070b] via-[#05070b]/25 to-transparent" />
 
                     <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full backdrop-blur-md bg-black/65 border border-white/15 flex items-center gap-1.5">
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          project.status === 'dev'
-                            ? 'bg-amber-400'
-                            : project.status === 'warning'
-                            ? 'bg-amber-400 animate-pulse'
-                            : 'bg-emerald-400'
-                        }`}
-                      />
+                      <span className={`h-2 w-2 rounded-full ${stMeta.dot}`} />
                       <span className="text-[10px] font-medium text-slate-200">
-                        {project.status === 'dev' ? 'Em Dev' : 'Online'}
+                        {stMeta.badge}
                       </span>
                     </div>
 
@@ -1274,7 +1865,7 @@ export default function ProjectWorkspaceHub() {
           </div>
         </section>
 
-        {/* ASIDE DE FILTROS */}
+        {/* ASIDE DE FILTROS (ESTÁGIOS DINÂMICOS) */}
         <aside className="lg:col-span-2 xl:col-span-1 flex flex-col justify-between h-full rounded-2xl backdrop-blur-xl bg-white/[0.02] border border-white/10 p-4 overflow-y-auto">
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -1287,24 +1878,32 @@ export default function ProjectWorkspaceHub() {
 
             <div className="space-y-1.5">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Estágio</p>
-              {[
-                { id: 'all', label: 'Todos os Projetos' },
-                { id: 'active', label: '100% Saudáveis' },
-                { id: 'warning', label: 'Com Pendência' },
-                { id: 'dev', label: 'Em Produção' }
-              ].map((st) => (
-                <button
-                  key={st.id}
-                  onClick={() => setStageFilter(st.id)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
-                    stageFilter === st.id
-                      ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
-                      : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-                  }`}
-                >
-                  <span className="truncate">{st.label}</span>
-                </button>
-              ))}
+              <button
+                onClick={() => setStageFilter('all')}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
+                  stageFilter === 'all'
+                    ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
+                    : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                }`}
+              >
+                <span className="truncate">Todos os Projetos</span>
+              </button>
+              {allStages.map((stKey) => {
+                const meta = getStageMeta(stKey);
+                return (
+                  <button
+                    key={stKey}
+                    onClick={() => setStageFilter(stKey)}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
+                      stageFilter === stKey
+                        ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
+                        : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="truncate">{meta.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="space-y-1.5">
@@ -1367,20 +1966,19 @@ export default function ProjectWorkspaceHub() {
       </div>
 
       {/* =====================================================================
-          MODAL / DRAWER LIQUID GLASS DE CRIAÇÃO E EDIÇÃO DINÂMICA
+          MODAL 1: CRIAÇÃO E EDIÇÃO DE PROJETOS (COM CATEGORIAS E ESTÁGIOS LIVRES)
       ===================================================================== */}
       {isEditorOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
           <div className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl bg-slate-950/95 border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.85)] overflow-hidden">
             
-            {/* Cabeçalho do Modal */}
             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <div>
                 <h2 className="text-lg font-bold text-white">
                   {editorMode === 'create' ? 'Cadastrar Novo Projeto / Cliente' : `Editando: ${draftProject.title}`}
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Adicione campos personalizados, cores, rotas e domínios livremente.
+                  Controle total sobre categorias, estágios, campos da ficha, cores, rotas e domínios.
                 </p>
               </div>
               <button
@@ -1391,10 +1989,9 @@ export default function ProjectWorkspaceHub() {
               </button>
             </div>
 
-            {/* Abas do Editor */}
             <div className="px-6 py-2.5 bg-black/40 border-b border-white/10 flex flex-wrap gap-2">
               {[
-                { id: 'geral', label: '1. Geral & Domínios' },
+                { id: 'geral', label: '1. Geral, Categorias & Domínios' },
                 { id: 'ficha', label: '2. Ficha Dinâmica & Paleta' },
                 { id: 'rotas', label: '3. Rotas & Subpáginas' },
                 { id: 'seo', label: '4. Lighthouse & Relatório GA4' }
@@ -1414,10 +2011,9 @@ export default function ProjectWorkspaceHub() {
               ))}
             </div>
 
-            {/* Corpo do Formulário */}
             <form onSubmit={handleSaveProject} className="flex-1 overflow-y-auto p-6 space-y-6">
               
-              {/* ABA 1: GERAL & DOMÍNIOS */}
+              {/* ABA 1: GERAL, CATEGORIAS E ESTÁGIOS CUSTOMIZÁVEIS */}
               {editorTab === 'geral' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1441,33 +2037,99 @@ export default function ProjectWorkspaceHub() {
                       className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
                     />
                   </div>
+
+                  {/* SELETOR + CRIADOR DE NOVA CATEGORIA */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Categoria</label>
-                    <select
-                      value={draftProject.category}
-                      onChange={(e) => setDraftProject({ ...draftProject, category: e.target.value })}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
-                    >
-                      <option value="Vitrine">Site Vitrine</option>
-                      <option value="Institucional">Site Institucional</option>
-                      <option value="Landing Page">Landing Page</option>
-                      <option value="Sistema">Sistema Web / SaaS</option>
-                    </select>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs text-slate-400">Categoria do Projeto</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCategory(!isAddingCategory)}
+                        className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-0.5"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>{isAddingCategory ? 'Cancelar' : 'Nova Categoria'}</span>
+                      </button>
+                    </div>
+                    {isAddingCategory ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newCategoryInput}
+                          onChange={(e) => setNewCategoryInput(e.target.value)}
+                          placeholder="Digite a nova categoria (Ex: E-commerce)..."
+                          className="flex-1 bg-white/[0.06] border border-cyan-400/50 rounded-xl px-3 py-2 text-xs text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomCategory}
+                          className="px-3 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs"
+                        >
+                          OK
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={draftProject.category}
+                        onChange={(e) => setDraftProject({ ...draftProject, category: e.target.value })}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                      >
+                        {allCategories.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
+
+                  {/* SELETOR + CRIADOR DE NOVO ESTÁGIO */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Estágio Atual</label>
-                    <select
-                      value={draftProject.status}
-                      onChange={(e) => setDraftProject({ ...draftProject, status: e.target.value })}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
-                    >
-                      <option value="active">100% Saudável (Online)</option>
-                      <option value="warning">Online com Pendência</option>
-                      <option value="dev">Em Desenvolvimento</option>
-                    </select>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs text-slate-400">Estágio Operacional</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingStage(!isAddingStage)}
+                        className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>{isAddingStage ? 'Cancelar' : 'Novo Estágio'}</span>
+                      </button>
+                    </div>
+                    {isAddingStage ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newStageInput}
+                          onChange={(e) => setNewStageInput(e.target.value)}
+                          placeholder="Ex: Em Homologação, Pausado, Aguardando Cliente..."
+                          className="flex-1 bg-white/[0.06] border border-indigo-400/50 rounded-xl px-3 py-2 text-xs text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomStage}
+                          className="px-3 py-2 rounded-xl bg-indigo-400 text-slate-950 font-bold text-xs"
+                        >
+                          OK
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={draftProject.status}
+                        onChange={(e) => setDraftProject({ ...draftProject, status: e.target.value })}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                      >
+                        {allStages.map((stKey) => (
+                          <option key={stKey} value={stKey}>
+                            {getStageMeta(stKey).label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
+
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Texto de Status Curto</label>
+                    <label className="block text-xs text-slate-400 mb-1">Texto de Status Detalhado (Exibido no Topo)</label>
                     <input
                       type="text"
                       value={draftProject.statusText}
@@ -1552,7 +2214,6 @@ export default function ProjectWorkspaceHub() {
               {/* ABA 2: FICHA DINÂMICA & PALETA */}
               {editorTab === 'ficha' && (
                 <div className="space-y-6">
-                  {/* Campos Dinâmicos */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -1626,7 +2287,6 @@ export default function ProjectWorkspaceHub() {
                     </div>
                   </div>
 
-                  {/* Paleta de Cores */}
                   <div className="pt-4 border-t border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-bold text-white">Paleta de Cores (Hex)</h3>
@@ -1893,7 +2553,6 @@ export default function ProjectWorkspaceHub() {
                 </div>
               )}
 
-              {/* Rodapé do Modal */}
               <div className="pt-4 border-t border-white/10 flex items-center justify-between">
                 {editorMode === 'edit' ? (
                   <button
@@ -1925,6 +2584,111 @@ export default function ProjectWorkspaceHub() {
                     <span>{isSaving ? 'Salvando...' : 'Salvar no PostgreSQL'}</span>
                   </button>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          MODAL 2: CRIAR E EDITAR SNIPPETS (GUIA DEV) E REFERÊNCIAS
+      ===================================================================== */}
+      {isResourceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-slate-950 border border-white/15 shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <h3 className="text-base font-bold text-white">
+                {resourceMode === 'create'
+                  ? draftResource.type === 'snippet'
+                    ? 'Novo Snippet de Código'
+                    : 'Nova Referência / Link'
+                  : 'Editar Bloco'}
+              </h3>
+              <button
+                onClick={() => setIsResourceModalOpen(false)}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveResource} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Título *</label>
+                  <input
+                    type="text"
+                    required
+                    value={draftResource.title}
+                    onChange={(e) => setDraftResource({ ...draftResource, title: e.target.value })}
+                    placeholder={draftResource.type === 'snippet' ? 'Ex: Script Pixel Meta Ads' : 'Ex: Awwwards Portfolios'}
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Tag / Categoria *</label>
+                  <input
+                    type="text"
+                    required
+                    value={draftResource.category}
+                    onChange={(e) => setDraftResource({ ...draftResource, category: e.target.value })}
+                    placeholder={draftResource.type === 'snippet' ? 'Ex: Analytics, SEO, Docker' : 'Ex: UI / Dark Mode, Ferramenta'}
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Descrição / Observação</label>
+                <input
+                  type="text"
+                  value={draftResource.description || ''}
+                  onChange={(e) => setDraftResource({ ...draftResource, description: e.target.value })}
+                  placeholder="Explicação rápida sobre onde ou como usar..."
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">
+                  {draftResource.type === 'snippet' ? 'Código do Snippet *' : 'URL Completa (https://...) *'}
+                </label>
+                {draftResource.type === 'snippet' ? (
+                  <textarea
+                    rows={8}
+                    required
+                    value={draftResource.content}
+                    onChange={(e) => setDraftResource({ ...draftResource, content: e.target.value })}
+                    placeholder="Cole o código HTML, JS, PHP ou configuração aqui..."
+                    className="w-full bg-[#030508] border border-white/10 rounded-xl p-3.5 text-xs font-mono text-cyan-200"
+                  />
+                ) : (
+                  <input
+                    type="url"
+                    required
+                    value={draftResource.content}
+                    onChange={(e) => setDraftResource({ ...draftResource, content: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs font-mono text-emerald-300"
+                  />
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-white/10 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsResourceModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 text-xs text-slate-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salvar</span>
+                </button>
               </div>
             </form>
           </div>
