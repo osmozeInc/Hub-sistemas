@@ -18,3 +18,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SEV_HUB_513802 }}
           channelId: live
           projectId: sev-hub-513802
+          entryPoint: "./sev-workspace/frontend"
