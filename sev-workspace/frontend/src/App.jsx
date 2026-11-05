@@ -7,7 +7,7 @@ import {
   Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000/api/workspace';
+const API_BASE = import.meta.env.VITE_API_URL + 'api/workspace';
 
 const INITIAL_PROJECTS = [
   {
