@@ -9,5 +9,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-EXPOSE 8000
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# 1. Copia todo o código do seu backend para dentro do contêiner
+COPY . .
+
+# 2. Instala as dependências do Laravel ignorando pacotes de desenvolvimento
+RUN composer install --no-dev --optimize-autoloader
+
+# 3. O Cloud Run fornece a porta pela variável $PORT. 
+# Usamos a sintaxe de shell (sem colchetes) para ler a variável.
+CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
