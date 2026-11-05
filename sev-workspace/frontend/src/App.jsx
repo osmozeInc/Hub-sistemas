@@ -1320,7 +1320,7 @@ export default function ProjectWorkspaceHub() {
                           </button>
                         </div>
 
-                        {selectedProject.infrastructure.length === 0 ? (
+                        {selectedProject.infrastructure?.length === 0 ? (
                           <div className="p-3.5 rounded-xl bg-black/25 border border-white/5 text-xs text-slate-500">
                             Nenhuma infraestrutura mapeada (Ex: VPS, Banco Azure, Render, Vercel).
                           </div>
