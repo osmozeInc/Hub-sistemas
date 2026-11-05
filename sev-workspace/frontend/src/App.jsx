@@ -1327,7 +1327,7 @@ export default function ProjectWorkspaceHub() {
                         ) : (
                           <div className={`grid gap-2.5 ${projectSubTab === 'architecture' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                             {(selectedProject.infrastructure || []).map((srv, idx) => {
-                              const copyId = `infra-${selectedProject.id}-${idx}`;
+                              const copyId = `infra-${selectedProject?.id}-${idx}`;
                               const isPaidOrCredit =
                                 (srv.cost_status || '').toLowerCase().includes('crédito') ||
                                 (srv.cost_status || '').toLowerCase().includes('pago') ||
