@@ -137,6 +137,16 @@ const EMPTY_PROJECT_TEMPLATE = {
   palette: [{ name: 'Cor Primária', hex: '#06B6D4' }],
   dossier: [{ category: 'Contato', label: 'WhatsApp / E-mail', value: '' }],
   routes: [{ name: 'Página Principal', path: '/index.html', folder: 'root', status: 'online', note: 'Landing Page' }],
+  infrastructure: [
+    {
+      name: 'Hospedagem Principal',
+      provider: 'Vercel / Render',
+      type: 'Frontend',
+      url_or_ip: '',
+      cost_status: 'Gratuito',
+      notes: ''
+    }
+  ],
   health: {
     lighthouse: { perf: 100, seo: 100, best: 100, a11y: 100 },
     tools: { ga4: false, gsc: false, sitemap: false, robots: false }
@@ -172,6 +182,7 @@ const normalizeProject = (p) => ({
   palette: Array.isArray(p.palette) ? p.palette : [],
   dossier: Array.isArray(p.dossier) ? p.dossier : [],
   routes: Array.isArray(p.routes) ? p.routes : [],
+  infrastructure: Array.isArray(p.infrastructure) ? p.infrastructure : [],
   domain: p.domain || { current: '', future: '', dnsProvider: '' },
   health: p.health || {
     lighthouse: { perf: 0, seo: 0, best: 0, a11y: 0 },
@@ -1005,7 +1016,7 @@ export default function ProjectWorkspaceHub() {
                   {[
                     { id: 'overview', label: 'Visão 360° (Bento Grid)' },
                     { id: 'ficha', label: 'Aba Ficha & Paleta' },
-                    { id: 'architecture', label: 'Aba Arquitetura & Rotas' },
+                    { id: 'architecture', label: 'Aba Arquitetura & Rotas & Infra' },
                     { id: 'seo', label: 'Aba Saúde, SEO & Lighthouse' }
                   ].map((sub) => (
                     <button
@@ -1289,6 +1300,96 @@ export default function ProjectWorkspaceHub() {
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      {/* MAPA DE INFRAESTRUTURA E SERVIÇOS */}
+                      <div className="pt-4 border-t border-white/10">
+                        <div className="flex items-center justify-between mb-3">
+                          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                            <Terminal className="w-4 h-4 text-cyan-400" />
+                            <span>Mapa de Infraestrutura & Custos</span>
+                          </h2>
+                          <button
+                            onClick={() => {
+                              openEditModal(selectedProject);
+                              setEditorTab('rotas');
+                            }}
+                            className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> Serviço
+                          </button>
+                        </div>
+
+                        {selectedProject.infrastructure.length === 0 ? (
+                          <div className="p-3.5 rounded-xl bg-black/25 border border-white/5 text-xs text-slate-500">
+                            Nenhuma infraestrutura mapeada (Ex: VPS, Banco Azure, Render, Vercel).
+                          </div>
+                        ) : (
+                          <div className={`grid gap-2.5 ${projectSubTab === 'architecture' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                            {selectedProject.infrastructure.map((srv, idx) => {
+                              const copyId = `infra-${selectedProject.id}-${idx}`;
+                              const isPaidOrCredit =
+                                (srv.cost_status || '').toLowerCase().includes('crédito') ||
+                                (srv.cost_status || '').toLowerCase().includes('pago') ||
+                                (srv.cost_status || '').includes('$');
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className="p-3 rounded-xl bg-black/40 border border-white/10 hover:border-cyan-500/30 transition space-y-2"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
+                                          {srv.type || 'Serviço'}
+                                        </span>
+                                        <span className="text-[11px] font-semibold text-indigo-300">
+                                          {srv.provider}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs font-bold text-white mt-1">{srv.name}</p>
+                                    </div>
+
+                                    {srv.cost_status && (
+                                      <span
+                                        className={`px-2 py-0.5 text-[10px] font-mono rounded border shrink-0 ${
+                                          isPaidOrCredit
+                                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                        }`}
+                                      >
+                                        {srv.cost_status}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {srv.url_or_ip && (
+                                    <div
+                                      onClick={() => handleCopy(srv.url_or_ip, copyId)}
+                                      className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 cursor-pointer group"
+                                    >
+                                      <span className="text-[11px] font-mono text-slate-300 truncate">
+                                        {srv.url_or_ip}
+                                      </span>
+                                      {copiedKey === copyId ? (
+                                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                                      ) : (
+                                        <Copy className="w-3 h-3 text-slate-500 group-hover:text-cyan-300 shrink-0" />
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {srv.notes && (
+                                    <p className="text-[11px] text-slate-400 leading-relaxed border-t border-white/5 pt-1.5">
+                                      {srv.notes}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       <div className="p-3.5 rounded-xl bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 border border-cyan-500/25">
@@ -2441,6 +2542,136 @@ export default function ProjectWorkspaceHub() {
                         </button>
                       </div>
                     ))}
+                  </div>
+
+                  {/* SEÇÃO DE INFRAESTRUTURA DENTRO DA ABA 3 DO MODAL */}
+                  <div className="pt-6 border-t border-white/10 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Mapa de Infraestrutura & Custos</h3>
+                        <p className="text-xs text-slate-400">
+                          Registre onde está o banco, backend, frontend, qual e-mail foi usado e se consome créditos.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDraftProject({
+                            ...draftProject,
+                            infrastructure: [
+                              ...(draftProject.infrastructure || []),
+                              {
+                                name: '',
+                                provider: '',
+                                type: 'Database',
+                                url_or_ip: '',
+                                cost_status: 'Gratuito (Student)',
+                                notes: ''
+                              }
+                            ]
+                          })
+                        }
+                        className="px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/30 text-xs text-cyan-200 flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Adicionar Serviço
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {(draftProject.infrastructure || []).map((srv, idx) => (
+                        <div key={idx} className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2.5">
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                            <select
+                              value={srv.type}
+                              onChange={(e) => {
+                                const next = [...draftProject.infrastructure];
+                                next[idx].type = e.target.value;
+                                setDraftProject({ ...draftProject, infrastructure: next });
+                              }}
+                              className="sm:col-span-3 bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300"
+                            >
+                              <option value="Database">Database (SQL/NoSQL)</option>
+                              <option value="Backend">Backend / API</option>
+                              <option value="Frontend">Frontend / Estático</option>
+                              <option value="VPS / Cloud">VPS / Máquina Virtual</option>
+                              <option value="Storage / CDN">Storage / DNS / CDN</option>
+                            </select>
+
+                            <input
+                              type="text"
+                              placeholder="Nome (Ex: Banco Pro Gestão)"
+                              value={srv.name}
+                              onChange={(e) => {
+                                const next = [...draftProject.infrastructure];
+                                next[idx].name = e.target.value;
+                                setDraftProject({ ...draftProject, infrastructure: next });
+                              }}
+                              className="sm:col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+
+                            <input
+                              type="text"
+                              placeholder="Provedor (Ex: Azure, Render, GCP)"
+                              value={srv.provider}
+                              onChange={(e) => {
+                                const next = [...draftProject.infrastructure];
+                                next[idx].provider = e.target.value;
+                                setDraftProject({ ...draftProject, infrastructure: next });
+                              }}
+                              className="sm:col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300"
+                            />
+
+                            <input
+                              type="text"
+                              placeholder="Custo (Ex: Crédito $100 / Grátis)"
+                              value={srv.cost_status}
+                              onChange={(e) => {
+                                const next = [...draftProject.infrastructure];
+                                next[idx].cost_status = e.target.value;
+                                setDraftProject({ ...draftProject, infrastructure: next });
+                              }}
+                              className="sm:col-span-2 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-amber-300"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = draftProject.infrastructure.filter((_, i) => i !== idx);
+                                setDraftProject({ ...draftProject, infrastructure: next });
+                              }}
+                              className="sm:col-span-1 flex justify-center text-slate-500 hover:text-rose-400"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Endpoint / Host / IP (Copiável em 1 clique)"
+                              value={srv.url_or_ip}
+                              onChange={(e) => {
+                                const next = [...draftProject.infrastructure];
+                                next[idx].url_or_ip = e.target.value;
+                                setDraftProject({ ...draftProject, infrastructure: next });
+                              }}
+                              className="bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-200"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Notas (Ex: Conta institucional @uvanet.br / Link do painel)"
+                              value={srv.notes}
+                              onChange={(e) => {
+                                const next = [...draftProject.infrastructure];
+                                next[idx].notes = e.target.value;
+                                setDraftProject({ ...draftProject, infrastructure: next });
+                              }}
+                              className="bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

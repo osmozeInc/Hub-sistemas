@@ -12,7 +12,7 @@ class Project extends Model
 
     protected $fillable = [
         'id', 'title', 'subtitle', 'category', 'status', 'status_text',
-        'image', 'ga4_property_id', 'gsc_site_url', 'tags', 'domain',
+        'image', 'ga4_property_id', 'gsc_site_url', 'tags', 'domain', 'infrastructure',
         'palette', 'dossier', 'routes', 'health', 'analytics_summary', 'last_audited_at'
     ];
 
@@ -22,6 +22,7 @@ class Project extends Model
         'palette' => 'array',
         'dossier' => 'array',
         'routes' => 'array',
+        'infrastructure' => 'array',
         'health' => 'array',
         'analytics_summary' => 'array',
         'last_audited_at' => 'datetime',
