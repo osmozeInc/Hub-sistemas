@@ -4,10 +4,116 @@ import {
   Copy, Check, Globe, ShieldCheck, AlertCircle, Layers,
   ArrowUpRight, Filter, Gauge, FileCode, CalendarClock,
   Terminal, Palette, Search, Plus, CheckCircle2,
-  Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save
+  Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save, Eye, EyeOff
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL + 'api/workspace';
+
+// Wrapper que injeta automaticamente o Token de Login em todas as chamadas
+const apiFetch = (url, options = {}) => {
+  const token = localStorage.getItem('sev_auth_token');
+  const headers = {
+    Accept: 'application/json',
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {})
+  };
+  return fetch(url, { ...options, headers });
+};
+
+function LoginScreen({ onLoginSuccess }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
+
+    apiFetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Credenciais inválidas');
+        return data;
+      })
+      .then((data) => {
+        localStorage.setItem('sev_auth_token', data.token);
+        localStorage.setItem('sev_auth_user', JSON.stringify(data.user));
+        onLoginSuccess(data.user);
+      })
+      .catch((err) => {
+        setErrorMsg(err.message);
+        setLoading(false);
+      });
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-slate-100 p-4 font-sans">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(#ffffff12_1px,transparent_1px)] [background-size:20px_20px]" />
+      <form
+        onSubmit={handleSubmit}
+        className="relative z-10 w-full max-w-md p-6 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 shadow-2xl space-y-5"
+      >
+        <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs tracking-wider uppercase">
+          <Sparkles className="w-4 h-4 text-cyan-400" />
+          <span>Sev Workspace · Acesso Restrito</span>
+        </div>
+
+        <div>
+          <h1 className="text-xl font-bold text-white">Entrar no Hub</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Use sua credencial de Administrador ou conta de Leitor/Visitante.
+          </p>
+        </div>
+
+        {errorMsg && (
+          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs text-rose-300">
+            {errorMsg}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">E-mail</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@sevmarket.com"
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Senha</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition"
+        >
+          {loading ? 'Autenticando...' : 'Acessar Workspace'}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 const INITIAL_PROJECTS = [
   {
@@ -242,7 +348,7 @@ function PublicClientPortal({ token }) {
   const [copiedHex, setCopiedHex] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/public/${token}`)
+    apiFetch(`${API_BASE}/public/${token}`)
       .then((res) => {
         if (!res.ok) throw new Error('Link inválido');
         return res.json();
@@ -440,6 +546,20 @@ function PublicClientPortal({ token }) {
 }
 
 export default function ProjectWorkspaceHub() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('sev_auth_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const isAdmin = currentUser?.role === 'admin';
+
+  const handleLogout = () => {
+    apiFetch(`${API_BASE}/logout`, { method: 'POST' }).finally(() => {
+      localStorage.removeItem('sev_auth_token');
+      localStorage.removeItem('sev_auth_user');
+      setCurrentUser(null);
+    });
+  };
+
   const [projects, setProjects] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [resources, setResources] = useState([]);
@@ -511,10 +631,16 @@ export default function ProjectWorkspaceHub() {
     return Array.from(new Set([...customStages, ...fromProjects]));
   }, [customStages, projects]);
 
-  const fetchWorkspaceData = () => {
+const fetchWorkspaceData = () => {
     setIsLoading(true);
-    fetch(`${API_BASE}/bootstrap`)
+    apiFetch(`${API_BASE}/bootstrap`)
       .then((res) => {
+        if (res.status === 401) {
+          localStorage.removeItem('sev_auth_token');
+          localStorage.removeItem('sev_auth_user');
+          setCurrentUser(null);
+          throw new Error('Sessão expirada');
+        }
         if (!res.ok) throw new Error('Falha na API');
         return res.json();
       })
@@ -545,7 +671,12 @@ export default function ProjectWorkspaceHub() {
   };
 
   useEffect(() => {
-    fetchWorkspaceData();
+    const hasClientToken = new URLSearchParams(window.location.search).has('client_token');
+    if (currentUser && !hasClientToken) {
+      fetchWorkspaceData();
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
   const selectedProject = useMemo(
@@ -590,6 +721,17 @@ export default function ProjectWorkspaceHub() {
   const clientToken = new URLSearchParams(window.location.search).get('client_token');
   if (clientToken) {
     return <PublicClientPortal token={clientToken} />;
+  }
+
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          fetchWorkspaceData();
+        }}
+      />
+    );
   }
 
   if (isLoading) {
@@ -664,7 +806,7 @@ export default function ProjectWorkspaceHub() {
     const url = editorMode === 'create' ? `${API_BASE}/projects` : `${API_BASE}/projects/${draftProject.id}`;
     const method = editorMode === 'create' ? 'POST' : 'PATCH';
 
-    fetch(url, {
+    apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -691,7 +833,7 @@ export default function ProjectWorkspaceHub() {
   const handleDeleteProject = () => {
     if (!window.confirm(`Tem certeza que deseja excluir o projeto "${draftProject.title}"?`)) return;
 
-    fetch(`${API_BASE}/projects/${draftProject.id}`, { method: 'DELETE' })
+    apiFetch(`${API_BASE}/projects/${draftProject.id}`, { method: 'DELETE' })
       .then(() => {
         const remaining = projects.filter((p) => p.id !== draftProject.id);
         setProjects(remaining);
@@ -731,7 +873,7 @@ export default function ProjectWorkspaceHub() {
     const url = isCreate ? `${API_BASE}/resources` : `${API_BASE}/resources/${draftResource.id}`;
     const method = isCreate ? 'POST' : 'PATCH';
 
-    fetch(url, {
+    apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(draftResource)
@@ -750,7 +892,7 @@ export default function ProjectWorkspaceHub() {
 
   const handleDeleteResource = (id) => {
     if (!window.confirm('Deseja excluir este bloco permanentemente?')) return;
-    fetch(`${API_BASE}/resources/${id}`, { method: 'DELETE' })
+    apiFetch(`${API_BASE}/resources/${id}`, { method: 'DELETE' })
       .then(() => {
         setResources((prev) => prev.filter((r) => r.id !== id));
       })
@@ -760,7 +902,7 @@ export default function ProjectWorkspaceHub() {
   const seedDefaultResources = async (type) => {
     const defaults = type === 'snippet' ? DEFAULT_SNIPPETS : DEFAULT_REFERENCES;
     for (const item of defaults) {
-      const res = await fetch(`${API_BASE}/resources`, {
+      const res = await apiFetch(`${API_BASE}/resources`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item)
@@ -791,16 +933,54 @@ export default function ProjectWorkspaceHub() {
       prev.map((proj) => (proj.id === selectedProject.id ? { ...proj, health: updatedHealth } : proj))
     );
 
-    fetch(`${API_BASE}/projects/${selectedProject.id}`, {
+    apiFetch(`${API_BASE}/projects/${selectedProject.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ health: updatedHealth })
     }).catch((err) => console.error('Erro ao salvar switch:', err));
   };
 
+  // Alterna no banco se um campo da Ficha deve ser ocultado para o perfil Leitor
+  const toggleDossierSecret = (e, index) => {
+    e.stopPropagation(); // Impede que o clique no olho acione a cópia do card
+    if (!isAdmin) return;
+
+    const updatedDossier = selectedProject.dossier.map((item, idx) =>
+      idx === index ? { ...item, is_secret: !item.is_secret } : item
+    );
+
+    setProjects((prev) =>
+      prev.map((proj) => (proj.id === selectedProject.id ? { ...proj, dossier: updatedDossier } : proj))
+    );
+
+    apiFetch(`${API_BASE}/projects/${selectedProject.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ dossier: updatedDossier })
+    }).catch((err) => console.error('Erro ao ocultar campo:', err));
+  };
+
+  // Alterna no banco se um serviço de Infraestrutura deve ter IP/Notas ocultados para o Leitor
+  const toggleInfraSecret = (e, index) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+
+    const updatedInfra = (selectedProject.infrastructure || []).map((srv, idx) =>
+      idx === index ? { ...srv, is_secret: !srv.is_secret } : srv
+    );
+
+    setProjects((prev) =>
+      prev.map((proj) => (proj.id === selectedProject.id ? { ...proj, infrastructure: updatedInfra } : proj))
+    );
+
+    apiFetch(`${API_BASE}/projects/${selectedProject.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ infrastructure: updatedInfra })
+    }).catch((err) => console.error('Erro ao ocultar infra:', err));
+  };
+
   const triggerLiveAudit = () => {
     setIsAuditing(true);
-    fetch(`${API_BASE}/projects/${selectedProject.id}/audit`, { method: 'POST' })
+    apiFetch(`${API_BASE}/projects/${selectedProject.id}/audit`, { method: 'POST' })
       .then((res) => res.json())
       .then((updatedProj) => {
         const normalized = normalizeProject(updatedProj);
@@ -813,7 +993,7 @@ export default function ProjectWorkspaceHub() {
 
   const handleSyncGa4 = () => {
     setIsSyncingGa4(true);
-    fetch(`${API_BASE}/projects/${selectedProject.id}/ga4`, { method: 'POST' })
+    apiFetch(`${API_BASE}/projects/${selectedProject.id}/ga4`, { method: 'POST' })
       .then(async (res) => {
         if (!res.ok) {
           const err = await res.json();
@@ -841,7 +1021,7 @@ export default function ProjectWorkspaceHub() {
       return;
     }
 
-    fetch(`${API_BASE}/projects/${selectedProject.id}/share-token`, { method: 'POST' })
+    apiFetch(`${API_BASE}/projects/${selectedProject.id}/share-token`, { method: 'POST' })
       .then((res) => res.json())
       .then((updated) => {
         const norm = normalizeProject(updated);
@@ -868,7 +1048,7 @@ export default function ProjectWorkspaceHub() {
       category: 'Operação'
     };
 
-    fetch(`${API_BASE}/reminders`, {
+    apiFetch(`${API_BASE}/reminders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -882,12 +1062,12 @@ export default function ProjectWorkspaceHub() {
 
   const toggleReminderDone = (id) => {
     setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, completed: !r.completed } : r)));
-    fetch(`${API_BASE}/reminders/${id}/toggle`, { method: 'PATCH' }).catch(() => {});
+    apiFetch(`${API_BASE}/reminders/${id}/toggle`, { method: 'PATCH' }).catch(() => {});
   };
 
   const deleteReminder = (id) => {
     setReminders((prev) => prev.filter((r) => r.id !== id));
-    fetch(`${API_BASE}/reminders/${id}`, { method: 'DELETE' }).catch(() => {});
+    apiFetch(`${API_BASE}/reminders/${id}`, { method: 'DELETE' }).catch(() => {});
   };
 
   const generateWhatsAppReport = (project) => {
@@ -989,19 +1169,23 @@ export default function ProjectWorkspaceHub() {
               </div>
 
               <div className="flex items-center gap-2 pr-1">
+                <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-mono text-slate-300">
+                  {isAdmin ? 'ADMIN' : 'MODO LEITOR'}
+                </span>
+                {isAdmin && (
+                  <button
+                    onClick={openCreateModal}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/35 text-cyan-200 text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Novo Projeto</span>
+                  </button>
+                )}
                 <button
-                  onClick={openCreateModal}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/35 text-cyan-200 text-xs font-semibold flex items-center gap-1.5 transition"
+                  onClick={handleLogout}
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs transition"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Novo Projeto</span>
-                </button>
-                <button
-                  onClick={fetchWorkspaceData}
-                  title="Sincronizar com o PostgreSQL"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  Sair
                 </button>
               </div>
             </div>
@@ -1159,14 +1343,20 @@ export default function ProjectWorkspaceHub() {
                             {selectedProject.dossier.map((item, idx) => {
                               const copyId = `dossier-${selectedProject.id}-${idx}`;
                               const isCopied = copiedKey === copyId;
+                              const isMaskedForViewer = Boolean(item.masked);
+
                               return (
                                 <div
                                   key={idx}
-                                  onClick={() => handleCopy(item.value, copyId)}
-                                  className="group p-3 rounded-xl bg-black/35 hover:bg-white/[0.06] border border-white/5 hover:border-cyan-500/30 transition cursor-pointer flex items-center justify-between gap-2"
+                                  onClick={() => !isMaskedForViewer && handleCopy(item.value, copyId)}
+                                  className={`group p-3 rounded-xl bg-black/35 border transition flex items-center justify-between gap-2 ${
+                                    isMaskedForViewer
+                                      ? 'border-white/5 opacity-75 cursor-not-allowed'
+                                      : 'border-white/5 hover:bg-white/[0.06] hover:border-cyan-500/30 cursor-pointer'
+                                  }`}
                                 >
                                   <div className="min-w-0">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-1.5">
                                       {item.category && (
                                         <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-400/80">
                                           {item.category}
@@ -1175,16 +1365,53 @@ export default function ProjectWorkspaceHub() {
                                       <span className="text-[11px] text-slate-400 truncate">
                                         {item.category ? `· ${item.label}` : item.label}
                                       </span>
+                                      {isAdmin && item.is_secret && (
+                                        <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                          Oculto p/ Leitor
+                                        </span>
+                                      )}
                                     </div>
-                                    <p className="text-xs font-medium text-slate-100 truncate mt-1 font-mono">
+                                    <p
+                                      className={`text-xs font-medium truncate mt-1 font-mono ${
+                                        isMaskedForViewer ? 'text-amber-400/80 tracking-widest' : 'text-slate-100'
+                                      }`}
+                                    >
                                       {item.value}
                                     </p>
                                   </div>
-                                  <div className="shrink-0 p-1.5 rounded-lg bg-white/[0.04] group-hover:bg-cyan-500/20 transition">
-                                    {isCopied ? (
-                                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                    ) : (
-                                      <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" />
+
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    {isAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => toggleDossierSecret(e, idx)}
+                                        title={
+                                          item.is_secret
+                                            ? 'Oculto para Leitor no Backend (Clique para liberar)'
+                                            : 'Visível para Leitor (Clique para ocultar no Backend)'
+                                        }
+                                        className={`p-1.5 rounded-lg border transition ${
+                                          item.is_secret
+                                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                                            : 'bg-white/[0.04] border-transparent text-slate-500 hover:text-slate-200 hover:bg-white/10'
+                                        }`}
+                                      >
+                                        {item.is_secret ? (
+                                          <EyeOff className="w-3.5 h-3.5" />
+                                        ) : (
+                                          <Eye className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
+                                    )}
+
+                                    {!isMaskedForViewer && (
+                                      <div className="p-1.5 rounded-lg bg-white/[0.04] group-hover:bg-cyan-500/20 transition">
+                                        {isCopied ? (
+                                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                        ) : (
+                                          <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" />
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -2371,8 +2598,24 @@ export default function ProjectWorkspaceHub() {
                               next[idx].value = e.target.value;
                               setDraftProject({ ...draftProject, dossier: next });
                             }}
-                            className="col-span-4 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
+                            className="col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
                           />
+                          <button
+                            type="button"
+                            title={item.is_secret ? 'Oculto p/ Leitor' : 'Visível p/ Leitor'}
+                            onClick={() => {
+                              const next = [...draftProject.dossier];
+                              next[idx].is_secret = !next[idx].is_secret;
+                              setDraftProject({ ...draftProject, dossier: next });
+                            }}
+                            className={`col-span-1 flex justify-center p-1.5 rounded-lg border transition ${
+                              item.is_secret
+                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                : 'bg-white/[0.04] border-white/10 text-slate-500 hover:text-white'
+                            }`}
+                          >
+                            {item.is_secret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
                           <button
                             type="button"
                             onClick={() => {

@@ -6,16 +6,92 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Reminder;
 use App\Models\Resource;
+use App\Models\User;
 use App\Services\ProjectAuditService;
+use App\Services\Ga4Service;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class WorkspaceController extends Controller
 {
-    public function bootstrap()
+    // Trava de segurança: bloqueia qualquer tentativa de escrita por quem não é 'admin'
+    private function ensureAdmin(Request $request)
     {
+        if ($request->user()?->role !== 'admin') {
+            abort(403, 'Acesso somente leitura. Apenas o administrador pode alterar dados.');
+        }
+    }
+
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            return response()->json(['message' => 'E-mail ou senha incorretos.'], 401);
+        }
+
+        $token = $user->createToken('sev-workspace-token')->plainTextToken;
+
         return response()->json([
-            'projects' => Project::orderBy('created_at', 'desc')->get(),
+            'token' => $token,
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ]
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        return response()->json($request->user());
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()?->currentAccessToken()?->delete();
+        return response()->json(['logged_out' => true]);
+    }
+
+    public function bootstrap(Request $request)
+    {
+        $isAdmin = $request->user()?->role === 'admin';
+        $projects = Project::orderBy('created_at', 'desc')->get();
+
+        // Se for Leitor/Visitante, mascara os valores secretos ANTES de sair do servidor
+        if (!$isAdmin) {
+            $projects->transform(function ($project) {
+                $dossier = collect($project->dossier ?? [])->map(function ($item) {
+                    if (!empty($item['is_secret'])) {
+                        $item['value'] = '••••••••';
+                        $item['masked'] = true;
+                    }
+                    return $item;
+                })->all();
+
+                $infra = collect($project->infrastructure ?? [])->map(function ($srv) {
+                    if (!empty($srv['is_secret'])) {
+                        $srv['url_or_ip'] = !empty($srv['url_or_ip']) ? '••••••••' : '';
+                        $srv['notes'] = '•••••••• [Credencial Oculta]';
+                        $srv['masked'] = true;
+                    }
+                    return $srv;
+                })->all();
+
+                $project->dossier = $dossier;
+                $project->infrastructure = $infra;
+                return $project;
+            });
+        }
+
+        return response()->json([
+            'projects' => $projects,
             'reminders' => Reminder::latest()->get(),
             'resources' => Resource::orderBy('id', 'asc')->get(),
         ]);
@@ -23,6 +99,8 @@ class WorkspaceController extends Controller
 
     public function storeProject(Request $request)
     {
+        $this->ensureAdmin($request);
+
         $title = $request->input('title', 'Novo Projeto');
         $id = $request->input('id') ?: Str::slug($title) . '-' . Str::lower(Str::random(4));
 
@@ -57,6 +135,8 @@ class WorkspaceController extends Controller
 
     public function upsertProject(Request $request, string $id)
     {
+        $this->ensureAdmin($request);
+
         $project = Project::findOrFail($id);
         $data = $request->all();
 
@@ -72,89 +152,46 @@ class WorkspaceController extends Controller
         return response()->json($project);
     }
 
-    public function destroyProject(string $id)
+    public function destroyProject(Request $request, string $id)
     {
+        $this->ensureAdmin($request);
+
         $project = Project::findOrFail($id);
         $project->delete();
 
         return response()->json(['deleted' => true]);
     }
 
-    public function runAudit(string $id, ProjectAuditService $auditService)
+    public function runAudit(Request $request, string $id, ProjectAuditService $auditService)
     {
+        $this->ensureAdmin($request);
+
         $project = Project::findOrFail($id);
         $updated = $auditService->auditProject($project);
 
         return response()->json($updated);
     }
 
-    public function storeReminder(Request $request)
+    public function syncGa4(Request $request, string $id, Ga4Service $ga4Service)
     {
-        $validated = $request->validate([
-            'project_id' => 'required|string',
-            'project_title' => 'required|string',
-            'title' => 'required|string',
-            'frequency' => 'required|string',
-            'category' => 'nullable|string',
-        ]);
+        $this->ensureAdmin($request);
 
-        $reminder = Reminder::create($validated);
-        return response()->json($reminder, 201);
+        try {
+            $project = Project::findOrFail($id);
+            $updated = $ga4Service->syncProject($project);
+            return response()->json($updated);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
     }
 
-    public function toggleReminder(Reminder $reminder)
+    public function generateShareToken(Request $request, string $id)
     {
-        $reminder->update(['completed' => !$reminder->completed]);
-        return response()->json($reminder);
-    }
+        $this->ensureAdmin($request);
 
-    public function destroyReminder(Reminder $reminder)
-    {
-        $reminder->delete();
-        return response()->json(['deleted' => true]);
-    }
-
-    // CRUD completo de Snippets (Guia Dev) e Referências
-    public function storeResource(Request $request)
-    {
-        $validated = $request->validate([
-            'type' => 'required|string|in:snippet,reference',
-            'title' => 'required|string',
-            'category' => 'required|string',
-            'description' => 'nullable|string',
-            'content' => 'required|string',
-        ]);
-
-        $resource = Resource::create($validated);
-        return response()->json($resource, 201);
-    }
-
-    public function updateResource(Request $request, Resource $resource)
-    {
-        $validated = $request->validate([
-            'type' => 'sometimes|string|in:snippet,reference',
-            'title' => 'required|string',
-            'category' => 'required|string',
-            'description' => 'nullable|string',
-            'content' => 'required|string',
-        ]);
-
-        $resource->update($validated);
-        return response()->json($resource);
-    }
-
-    public function destroyResource(Resource $resource)
-    {
-        $resource->delete();
-        return response()->json(['deleted' => true]);
-    }
-
-    // Gera ou regenera um token público único para enviar ao cliente
-    public function generateShareToken(string $id)
-    {
         $project = Project::findOrFail($id);
         $domain = is_array($project->domain) ? $project->domain : [];
-        
+
         if (empty($domain['share_token'])) {
             $domain['share_token'] = Str::random(24);
             $project->domain = $domain;
@@ -174,10 +211,12 @@ class WorkspaceController extends Controller
             return response()->json(['message' => 'Relatório não encontrado'], 404);
         }
 
+        // Sintaxe correta: filtra campos marcados como is_secret ou internos
         $safeDossier = collect($project->dossier ?? [])->reject(function ($item) {
             $cat = strtolower($item['category'] ?? '');
             $label = strtolower($item['label'] ?? '');
-            return str_contains($cat, 'infra')
+            return !empty($item['is_secret'])
+                || str_contains($cat, 'infra')
                 || str_contains($cat, 'senha')
                 || str_contains($label, 'senha')
                 || str_contains($label, 'ssh');
@@ -203,14 +242,75 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    public function syncGa4(string $id, \App\Services\Ga4Service $ga4Service)
+    public function storeReminder(Request $request)
     {
-        try {
-            $project = Project::findOrFail($id);
-            $updated = $ga4Service->syncProject($project);
-            return response()->json($updated);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
-        }
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'project_id' => 'required|string',
+            'project_title' => 'required|string',
+            'title' => 'required|string',
+            'frequency' => 'required|string',
+            'category' => 'nullable|string',
+        ]);
+
+        $reminder = Reminder::create($validated);
+        return response()->json($reminder, 201);
+    }
+
+    public function toggleReminder(Request $request, Reminder $reminder)
+    {
+        $this->ensureAdmin($request);
+
+        $reminder->update(['completed' => !$reminder->completed]);
+        return response()->json($reminder);
+    }
+
+    public function destroyReminder(Request $request, Reminder $reminder)
+    {
+        $this->ensureAdmin($request);
+
+        $reminder->delete();
+        return response()->json(['deleted' => true]);
+    }
+
+    public function storeResource(Request $request)
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'type' => 'required|string|in:snippet,reference',
+            'title' => 'required|string',
+            'category' => 'required|string',
+            'description' => 'nullable|string',
+            'content' => 'required|string',
+        ]);
+
+        $resource = Resource::create($validated);
+        return response()->json($resource, 201);
+    }
+
+    public function updateResource(Request $request, Resource $resource)
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'type' => 'sometimes|string|in:snippet,reference',
+            'title' => 'required|string',
+            'category' => 'required|string',
+            'description' => 'nullable|string',
+            'content' => 'required|string',
+        ]);
+
+        $resource->update($validated);
+        return response()->json($resource);
+    }
+
+    public function destroyResource(Request $request, Resource $resource)
+    {
+        $this->ensureAdmin($request);
+
+        $resource->delete();
+        return response()->json(['deleted' => true]);
     }
 }
