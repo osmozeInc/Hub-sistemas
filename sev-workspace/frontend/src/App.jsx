@@ -4,7 +4,7 @@ import {
   Copy, Check, Globe, ShieldCheck, AlertCircle, Layers,
   ArrowUpRight, Filter, Gauge, FileCode, CalendarClock,
   Terminal, Palette, Search, Plus, CheckCircle2,
-  Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save, Eye, EyeOff
+  Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save, Eye, EyeOff, Menu, Lock, Unlock
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL + 'api/workspace';
@@ -55,7 +55,7 @@ function LoginScreen({ onLoginSuccess }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-slate-100 p-4 font-sans">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(#ffffff12_1px,transparent_1px)] [background-size:20px_20px]" />
+      <TechnoBackground />
       <form
         onSubmit={handleSubmit}
         className="relative z-10 w-full max-w-md p-6 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 shadow-2xl space-y-5"
@@ -144,6 +144,7 @@ const INITIAL_PROJECTS = [
       { name: 'Home Principal', path: '/index.html', folder: 'root', status: 'online', note: 'Melhorias de desempenho' },
       { name: 'Fluxo de Orçamento', path: '/orcamento', folder: '/orcamento', status: 'online', note: 'Ícone configurado' }
     ],
+    infrastructure: [],
     health: {
       lighthouse: { perf: 98, seo: 100, best: 100, a11y: 95 },
       tools: { ga4: true, gsc: true, sitemap: true, robots: true }
@@ -260,7 +261,6 @@ const EMPTY_PROJECT_TEMPLATE = {
   analyticsSummary: { period: 'Mês Atual', totalClicks: 0, whatsappClicks: 0, topPage: '/index.html' }
 };
 
-// Mapeia o texto do estágio para um rótulo legível e cor de indicador
 const getStageMeta = (status) => {
   const s = (status || '').toLowerCase();
   if (s === 'active' || s.includes('saud') || s.includes('online') || s.includes('prod')) {
@@ -269,7 +269,7 @@ const getStageMeta = (status) => {
   if (s === 'warning' || s.includes('pend') || s.includes('alerta') || s.includes('revis')) {
     return { label: status === 'warning' ? 'Com Pendência' : status, dot: 'bg-amber-400 animate-pulse', badge: 'Pendência' };
   }
-  if (s === 'dev' || s.includes('dev') || s.includes('desenv') || s.includes(' Homolog')) {
+  if (s === 'dev' || s.includes('dev') || s.includes('desenv') || s.includes('homolog')) {
     return { label: status === 'dev' ? 'Em Desenvolvimento' : status, dot: 'bg-indigo-400', badge: 'Em Dev' };
   }
   return { label: status || 'Customizado', dot: 'bg-cyan-400', badge: status || 'Ativo' };
@@ -339,6 +339,32 @@ function CircularLighthouseGauge({ score, label }) {
   );
 }
 
+function TechnoBackground() {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#05070b]">
+      {/* Malha de Bolinhas (Dot Matrix) */}
+      <div 
+        className="absolute inset-0 opacity-[0.25]" 
+        style={{
+          backgroundImage: 'radial-gradient(circle at center, #06B6D4 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}
+      />
+      {/* Grid de Linhas Topográficas */}
+      <div 
+        className="absolute inset-0 opacity-[0.04]" 
+        style={{
+          backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+          backgroundSize: '96px 96px'
+        }}
+      />
+      {/* Globos de Luz Pulsantes (Animação Nativa) */}
+      <div className="absolute -top-36 left-[15%] h-[450px] w-[700px] rounded-full bg-cyan-500/15 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
+      <div className="absolute top-1/3 right-[15%] h-[400px] w-[500px] rounded-full bg-indigo-500/15 blur-[130px] mix-blend-screen animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+    </div>
+  );
+}
+
 // ============================================================================
 // COMPONENTE: PAINEL PÚBLICO DE VISÃO DO CLIENTE (MODO APRESENTAÇÃO)
 // ============================================================================
@@ -359,7 +385,7 @@ function PublicClientPortal({ token }) {
 
   if (error) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-rose-400 font-mono text-sm">
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-rose-400 font-mono text-sm p-4 text-center">
         [ LINK DE RELATÓRIO INVÁLIDO OU EXPIRADO ]
       </div>
     );
@@ -367,7 +393,7 @@ function PublicClientPortal({ token }) {
 
   if (!project) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-cyan-400 font-mono text-sm">
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-cyan-400 font-mono text-sm p-4 text-center">
         [ CARREGANDO RELATÓRIO TÉCNICO DO CLIENTE... ]
       </div>
     );
@@ -381,10 +407,9 @@ function PublicClientPortal({ token }) {
 
   return (
     <div className="fixed inset-0 w-full h-full overflow-y-auto bg-slate-950 text-slate-100 font-sans p-4 sm:p-8">
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(#ffffff12_1px,transparent_1px)] [background-size:20px_20px]" />
+      <TechnoBackground />
 
       <div className="relative z-10 max-w-6xl mx-auto space-y-6">
-        {/* Topbar da Agência */}
         <header className="px-5 py-3.5 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="px-3 py-1 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 font-bold text-xs flex items-center gap-1.5">
@@ -400,13 +425,12 @@ function PublicClientPortal({ token }) {
           </div>
         </header>
 
-        {/* Hero do Cliente */}
         <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <span className="px-2.5 py-0.5 text-[11px] font-semibold uppercase rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
               {project.category}
             </span>
-            <h1 className="text-3xl font-bold text-white mt-2">{project.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2">{project.title}</h1>
             <p className="text-sm text-slate-400 mt-0.5">{project.subtitle}</p>
           </div>
           {project.domain?.current && (
@@ -423,9 +447,7 @@ function PublicClientPortal({ token }) {
           )}
         </div>
 
-        {/* Grid de 3 Colunas Limpo */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna 1: Métricas GA4 e Rotas */}
           <div className="space-y-6">
             <div className="p-5 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 border border-cyan-500/25">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-cyan-300 mb-3">
@@ -470,7 +492,6 @@ function PublicClientPortal({ token }) {
             </div>
           </div>
 
-          {/* Coluna 2: Lighthouse Core Web Vitals */}
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-5">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
               Auditoria Google Lighthouse
@@ -501,7 +522,6 @@ function PublicClientPortal({ token }) {
             </div>
           </div>
 
-          {/* Coluna 3: Identidade Visual & Ficha Pública */}
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-5">
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">
@@ -563,10 +583,12 @@ export default function ProjectWorkspaceHub() {
   const [projects, setProjects] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [resources, setResources] = useState([]);
+  const [usersList, setUsersList] = useState([]);
+  const [userForm, setUserForm] = useState({ id: null, name: '', email: '', role: 'viewer', password: '' });
+  const [userFormFeedback, setUserFormFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isAuditing, setIsAuditing] = useState(false);
 
-  // Categorias e Estágios customizáveis (persistem junto com os projetos e localStorage)
   const [customCategories, setCustomCategories] = useState(() => {
     const saved = localStorage.getItem('sev_custom_categories');
     return saved ? JSON.parse(saved) : ['Vitrine', 'Institucional', 'Landing Page', 'Sistema Web'];
@@ -587,12 +609,10 @@ export default function ProjectWorkspaceHub() {
 
   const [copiedKey, setCopiedKey] = useState(null);
 
-  // Estados do formulário de Lembretes (Agora com Select de Projeto!)
   const [newReminderProjectId, setNewReminderProjectId] = useState('');
   const [newReminderText, setNewReminderText] = useState('');
   const [newReminderFreq, setNewReminderFreq] = useState('Mensal · Todo dia 05');
 
-  // Estados do Modal de Projeto
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState('edit');
   const [editorTab, setEditorTab] = useState('geral');
@@ -604,9 +624,8 @@ export default function ProjectWorkspaceHub() {
   const [isAddingStage, setIsAddingStage] = useState(false);
   const [newStageInput, setNewStageInput] = useState('');
 
-  // Estados do Modal de Recursos (Snippets do Guia de Dev & Referências)
   const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
-  const [resourceMode, setResourceMode] = useState('create'); // 'create' | 'edit'
+  const [resourceMode, setResourceMode] = useState('create');
   const [draftResource, setDraftResource] = useState({
     id: null,
     type: 'snippet',
@@ -618,20 +637,37 @@ export default function ProjectWorkspaceHub() {
 
   const [isSyncingGa4, setIsSyncingGa4] = useState(false);
 
+  // Sensor de tela Mobile (< 1024px), Gaveta Mobile e Trava de Segurança Mobile
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [allowMobileEdit, setAllowMobileEdit] = useState(false);
 
-  // Lista unificada de Categorias (Padrões + Criadas pelo usuário + Presentes nos projetos)
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px)');
+    const listener = (e) => {
+      setIsMobile(e.matches);
+      if (!e.matches) setIsMobileDrawerOpen(false);
+    };
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, []);
+
+  // Por padrão no celular fica em Modo Visualização Limpa (evita toques acidentais), mas Admin pode destravar se quiser
+  const canEdit = isAdmin && (!isMobile || allowMobileEdit);
+
   const allCategories = useMemo(() => {
     const fromProjects = projects.map((p) => p.category).filter(Boolean);
     return Array.from(new Set([...customCategories, ...fromProjects]));
   }, [customCategories, projects]);
 
-  // Lista unificada de Estágios
   const allStages = useMemo(() => {
     const fromProjects = projects.map((p) => p.status).filter(Boolean);
     return Array.from(new Set([...customStages, ...fromProjects]));
   }, [customStages, projects]);
 
-const fetchWorkspaceData = () => {
+  const fetchWorkspaceData = () => {
     setIsLoading(true);
     apiFetch(`${API_BASE}/bootstrap`)
       .then((res) => {
@@ -652,6 +688,8 @@ const fetchWorkspaceData = () => {
         setProjects(normProjects.length ? normProjects : INITIAL_PROJECTS);
         setReminders(normReminders);
         setResources(fetchedResources);
+        setResources(fetchedResources);
+        setUsersList(data.users || []);
 
         if (normProjects.length > 0) {
           if (!normProjects.some((p) => p.id === selectedProjectId)) {
@@ -684,7 +722,6 @@ const fetchWorkspaceData = () => {
     [projects, selectedProjectId]
   );
 
-  // Separa os recursos do banco entre Snippets e Referências
   const snippetsList = useMemo(
     () => resources.filter((r) => r.type === 'snippet'),
     [resources]
@@ -744,7 +781,6 @@ const fetchWorkspaceData = () => {
 
   const pendingRemindersCount = reminders.filter((r) => !r.completed).length;
 
-  // Adicionar Nova Categoria Customizada
   const handleAddCustomCategory = () => {
     const val = newCategoryInput.trim();
     if (!val) return;
@@ -756,7 +792,6 @@ const fetchWorkspaceData = () => {
     setIsAddingCategory(false);
   };
 
-  // Adicionar Novo Estágio Customizado
   const handleAddCustomStage = () => {
     const val = newStageInput.trim();
     if (!val) return;
@@ -843,9 +878,6 @@ const fetchWorkspaceData = () => {
       .catch((err) => console.error('Erro ao excluir:', err));
   };
 
-  // =========================================================================
-  // CRUD DO GUIA DE DEV (SNIPPETS) E REFERÊNCIAS
-  // =========================================================================
   const openCreateResourceModal = (type) => {
     setResourceMode('create');
     setDraftResource({
@@ -899,6 +931,54 @@ const fetchWorkspaceData = () => {
       .catch((err) => console.error('Erro ao excluir recurso:', err));
   };
 
+  const handleSaveUser = (e) => {
+    e.preventDefault();
+    setUserFormFeedback('');
+    const isEdit = Boolean(userForm.id);
+    const url = isEdit ? `${API_BASE}/users/${userForm.id}` : `${API_BASE}/users`;
+    const method = isEdit ? 'PATCH' : 'POST';
+
+    apiFetch(url, {
+      method,
+      body: JSON.stringify(userForm)
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erro ao salvar usuário');
+        return data;
+      })
+      .then((savedUser) => {
+        if (isEdit) {
+          setUsersList((prev) => prev.map((u) => (u.id === savedUser.id ? savedUser : u)));
+          // Se você editou a sua própria conta, atualiza o estado local imediatamente
+          if (currentUser?.email === savedUser.email || currentUser?.id === savedUser.id) {
+            const updatedMe = { ...currentUser, ...savedUser };
+            setCurrentUser(updatedMe);
+            localStorage.setItem('sev_auth_user', JSON.stringify(updatedMe));
+          }
+        } else {
+          setUsersList((prev) => [...prev, savedUser]);
+        }
+        setUserForm({ id: null, name: '', email: '', role: 'viewer', password: '' });
+        setUserFormFeedback('Usuário salvo com sucesso!');
+        setTimeout(() => setUserFormFeedback(''), 3000);
+      })
+      .catch((err) => setUserFormFeedback(err.message));
+  };
+
+  const handleDeleteUser = (u) => {
+    if (!window.confirm(`Tem certeza que deseja revogar o acesso de "${u.name}" (${u.email})?`)) return;
+    apiFetch(`${API_BASE}/users/${u.id}`, { method: 'DELETE' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || 'Não foi possível excluir');
+        }
+        setUsersList((prev) => prev.filter((item) => item.id !== u.id));
+      })
+      .catch((err) => alert(err.message));
+  };
+
   const seedDefaultResources = async (type) => {
     const defaults = type === 'snippet' ? DEFAULT_SNIPPETS : DEFAULT_REFERENCES;
     for (const item of defaults) {
@@ -921,6 +1001,8 @@ const fetchWorkspaceData = () => {
   };
 
   const toggleHealthTool = (toolKey) => {
+    if (!canEdit) return; // Evita clique acidental no celular ou por visitante
+
     const updatedHealth = {
       ...selectedProject.health,
       tools: {
@@ -940,9 +1022,8 @@ const fetchWorkspaceData = () => {
     }).catch((err) => console.error('Erro ao salvar switch:', err));
   };
 
-  // Alterna no banco se um campo da Ficha deve ser ocultado para o perfil Leitor
   const toggleDossierSecret = (e, index) => {
-    e.stopPropagation(); // Impede que o clique no olho acione a cópia do card
+    e.stopPropagation();
     if (!isAdmin) return;
 
     const updatedDossier = selectedProject.dossier.map((item, idx) =>
@@ -959,7 +1040,6 @@ const fetchWorkspaceData = () => {
     }).catch((err) => console.error('Erro ao ocultar campo:', err));
   };
 
-  // Alterna no banco se um serviço de Infraestrutura deve ter IP/Notas ocultados para o Leitor
   const toggleInfraSecret = (e, index) => {
     e.stopPropagation();
     if (!isAdmin) return;
@@ -979,6 +1059,7 @@ const fetchWorkspaceData = () => {
   };
 
   const triggerLiveAudit = () => {
+    if (!canEdit) return;
     setIsAuditing(true);
     apiFetch(`${API_BASE}/projects/${selectedProject.id}/audit`, { method: 'POST' })
       .then((res) => res.json())
@@ -990,8 +1071,8 @@ const fetchWorkspaceData = () => {
       .catch(() => setIsAuditing(false));
   };
 
-
   const handleSyncGa4 = () => {
+    if (!canEdit) return;
     setIsSyncingGa4(true);
     apiFetch(`${API_BASE}/projects/${selectedProject.id}/ga4`, { method: 'POST' })
       .then(async (res) => {
@@ -1021,6 +1102,8 @@ const fetchWorkspaceData = () => {
       return;
     }
 
+    if (!isAdmin) return;
+
     apiFetch(`${API_BASE}/projects/${selectedProject.id}/share-token`, { method: 'POST' })
       .then((res) => res.json())
       .then((updated) => {
@@ -1031,10 +1114,9 @@ const fetchWorkspaceData = () => {
       });
   };
 
-  // Criar Lembrete usando o Projeto escolhido no Select!
   const handleAddReminder = (e) => {
     e.preventDefault();
-    if (!newReminderText.trim()) return;
+    if (!canEdit || !newReminderText.trim()) return;
 
     const targetId = newReminderProjectId || selectedProject.id;
     const targetObj = projects.find((p) => p.id === targetId);
@@ -1061,11 +1143,13 @@ const fetchWorkspaceData = () => {
   };
 
   const toggleReminderDone = (id) => {
+    if (!canEdit) return;
     setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, completed: !r.completed } : r)));
     apiFetch(`${API_BASE}/reminders/${id}/toggle`, { method: 'PATCH' }).catch(() => {});
   };
 
   const deleteReminder = (id) => {
+    if (!canEdit) return;
     setReminders((prev) => prev.filter((r) => r.id !== id));
     apiFetch(`${API_BASE}/reminders/${id}`, { method: 'DELETE' }).catch(() => {});
   };
@@ -1075,60 +1159,80 @@ const fetchWorkspaceData = () => {
     return `Olá! Segue o resumo de desempenho da página *${project.title}* referente a *${period}*:\n\n📊 *Acessos e Cliques Totais:* ${totalClicks}\n💬 *Cliques para Contato (WhatsApp):* ${whatsappClicks}\n🔥 *Rota mais acessada:* ${topPage}\n✅ *Status Técnico (SSL/SEO):* 100% Operacional`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 w-full h-full flex items-center justify-center bg-slate-950 text-cyan-400 font-mono text-sm">
-        [ CONECTANDO AO SERVIDOR VPS... ]
-      </div>
-    );
-  }
-
   const activeStageMeta = getStageMeta(selectedProject.status);
 
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-950 text-slate-100 text-left font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
       
       {/* BACKGROUND TECNOLÓGICO */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[#05070b]" />
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:20px_20px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff04_1px,transparent_1px),linear-gradient(to_bottom,#ffffff04_1px,transparent_1px)] bg-[size:100px_100px]" />
-        <div className="absolute -top-36 left-[18%] h-[420px] w-[760px] rounded-full bg-cyan-500/12 blur-[140px]" />
-        <div className="absolute top-1/3 right-[22%] h-[380px] w-[520px] rounded-full bg-indigo-500/10 blur-[150px]" />
-      </div>
+      <TechnoBackground />
 
-      {/* CONTAINER PRINCIPAL (65% | 23% | 12%) */}
-      <div className="relative z-10 flex flex-col lg:grid lg:grid-cols-12 xl:grid-cols-[65fr_23fr_12fr] gap-5 w-full h-full p-4 xl:p-6 overflow-y-auto lg:overflow-hidden">
+      {/* CONTAINER PRINCIPAL (1 Coluna Fluida no Mobile | 65% 23% 12% no Desktop) */}
+      <div className="relative z-10 flex flex-col lg:grid lg:grid-cols-12 xl:grid-cols-[65fr_23fr_12fr] gap-5 w-full h-full p-3 sm:p-4 xl:p-6 overflow-hidden">
         
         {/* ===================================================================
-            PAINEL ESQUERDO (65% Workspace Contextual)
+            PAINEL ESQUERDO (100% no Mobile | 65% no Desktop)
         =================================================================== */}
         <main className="lg:col-span-7 xl:col-span-1 flex flex-col h-full min-w-0 overflow-hidden">
           
-          {/* HEADER LIQUID GLASS */}
-          <header className="sticky top-0 z-30 flex flex-col items-center w-full mb-5 shrink-0">
-            <div className="w-full px-3.5 py-2.5 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.15)] flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/15 to-indigo-500/15 border border-cyan-400/25 text-cyan-300 font-semibold text-xs tracking-wide mr-1">
+          {/* HEADER LIQUID GLASS RESPONSIVO */}
+          <header className="sticky top-0 z-30 flex flex-col items-center w-full mb-3 lg:mb-5 shrink-0">
+            <div className="w-full px-3 py-2.5 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              
+              {/* Linha Superior Mobile: Logo + Gaveta de Projetos + Destrava Mobile */}
+              <div className="flex items-center justify-between w-full sm:w-auto">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/15 to-indigo-500/15 border border-cyan-400/25 text-cyan-300 font-semibold text-xs tracking-wide">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                   <span>SEV WORKSPACE</span>
                 </div>
 
+                <div className="flex sm:hidden items-center gap-1.5">
+                  {isAdmin && (
+                    <button
+                      onClick={() => setAllowMobileEdit(!allowMobileEdit)}
+                      title="Liberar ou bloquear edições no celular"
+                      className={`p-1.5 rounded-xl border text-xs flex items-center gap-1 transition ${
+                        allowMobileEdit
+                          ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                          : 'bg-white/5 border-white/10 text-slate-400'
+                      }`}
+                    >
+                      {allowMobileEdit ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsMobileDrawerOpen(true)}
+                    className="px-2.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/35 text-cyan-200 text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <Menu className="w-3.5 h-3.5" />
+                    <span>Projetos ({projects.length})</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs"
+                  >
+                    Sair
+                  </button>
+                </div>
+              </div>
+
+              {/* Abas Globais (Deslizáveis no Mobile) */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-0.5 sm:pb-0">
                 <button
                   onClick={() => setGlobalModule('project')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  className={`shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                     globalModule === 'project'
                       ? 'bg-white/[0.12] text-white border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
                   }`}
                 >
                   <FolderGit2 className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span className="truncate max-w-[180px]">{selectedProject.title}</span>
+                  <span className="truncate max-w-[140px] sm:max-w-[180px]">{selectedProject.title}</span>
                 </button>
 
                 <button
                   onClick={() => setGlobalModule('reminders')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  className={`shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                     globalModule === 'reminders'
                       ? 'bg-white/[0.12] text-white border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
@@ -1145,7 +1249,7 @@ const fetchWorkspaceData = () => {
 
                 <button
                   onClick={() => setGlobalModule('devguide')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  className={`shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                     globalModule === 'devguide'
                       ? 'bg-white/[0.12] text-white border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
@@ -1157,7 +1261,7 @@ const fetchWorkspaceData = () => {
 
                 <button
                   onClick={() => setGlobalModule('refs')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  className={`shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                     globalModule === 'refs'
                       ? 'bg-white/[0.12] text-white border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
@@ -1166,13 +1270,48 @@ const fetchWorkspaceData = () => {
                   <Bookmark className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>Referências</span>
                 </button>
+
+                {isAdmin && (
+                  <button
+                    onClick={() => setGlobalModule('users')}
+                    className={`shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                      globalModule === 'users'
+                        ? 'bg-white/[0.12] text-white border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <span>Acessos</span>
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 pr-1">
+              {/* Ações Direitas (Tablet / Desktop) */}
+              <div className="hidden sm:flex items-center gap-2 pr-1 shrink-0">
+                <button
+                  onClick={() => setIsMobileDrawerOpen(true)}
+                  className="lg:hidden px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/35 text-cyan-200 text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <Menu className="w-3.5 h-3.5" />
+                  <span>Projetos ({projects.length})</span>
+                </button>
+                {isMobile && isAdmin && (
+                  <button
+                    onClick={() => setAllowMobileEdit(!allowMobileEdit)}
+                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono flex items-center gap-1 ${
+                      allowMobileEdit
+                        ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                        : 'bg-white/5 border-white/10 text-slate-400'
+                    }`}
+                  >
+                    {allowMobileEdit ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                    <span>{allowMobileEdit ? 'EDIÇÃO LIBERADA' : 'MODO LEITURA'}</span>
+                  </button>
+                )}
                 <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-mono text-slate-300">
                   {isAdmin ? 'ADMIN' : 'MODO LEITOR'}
                 </span>
-                {isAdmin && (
+                {canEdit && (
                   <button
                     onClick={openCreateModal}
                     className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/35 text-cyan-200 text-xs font-semibold flex items-center gap-1.5 transition"
@@ -1182,6 +1321,13 @@ const fetchWorkspaceData = () => {
                   </button>
                 )}
                 <button
+                  onClick={fetchWorkspaceData}
+                  title="Sincronizar com o PostgreSQL"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+                <button
                   onClick={handleLogout}
                   className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs transition"
                 >
@@ -1190,23 +1336,48 @@ const fetchWorkspaceData = () => {
               </div>
             </div>
 
+            {/* DOCK HORIZONTAL RÁPIDA DE PROJETOS (APENAS MOBILE/TABLET) */}
+            <div className="lg:hidden w-full mt-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+              {projects.map((proj) => {
+                const active = proj.id === selectedProject.id;
+                const meta = getStageMeta(proj.status);
+                return (
+                  <button
+                    key={proj.id}
+                    onClick={() => {
+                      setSelectedProjectId(proj.id);
+                      setGlobalModule('project');
+                    }}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-2 border transition ${
+                      active
+                        ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                        : 'bg-white/[0.03] text-slate-400 border-white/10'
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                    <span className="truncate max-w-[130px]">{proj.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             {globalModule === 'project' && (
-              <div className="relative flex flex-col items-center w-full">
-                <div className="relative flex items-center justify-center">
+              <div className="relative flex flex-col items-center w-full mt-1 lg:mt-0">
+                <div className="hidden lg:flex relative items-center justify-center">
                   <div className="h-2.5 w-72 backdrop-blur-xl bg-white/[0.05] border-x border-white/15" />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-1.5 px-3 py-1.5 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 shadow-[0_15px_35px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.1)]">
+                <div className="w-full lg:w-auto overflow-x-auto no-scrollbar flex items-center justify-start lg:justify-center gap-1.5 px-2.5 py-1.5 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 shadow-[0_15px_35px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.1)]">
                   {[
-                    { id: 'overview', label: 'Visão 360° (Bento Grid)' },
-                    { id: 'ficha', label: 'Aba Ficha & Paleta' },
-                    { id: 'architecture', label: 'Aba Arquitetura & Rotas & Infra' },
-                    { id: 'seo', label: 'Aba Saúde, SEO & Lighthouse' }
+                    { id: 'overview', label: 'Visão 360°' },
+                    { id: 'ficha', label: 'Ficha & Paleta' },
+                    { id: 'architecture', label: 'Rotas & Infra' },
+                    { id: 'seo', label: 'Saúde & SEO' }
                   ].map((sub) => (
                     <button
                       key={sub.id}
                       onClick={() => setProjectSubTab(sub.id)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+                      className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
                         projectSubTab === sub.id
                           ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]'
                           : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
@@ -1220,11 +1391,11 @@ const fetchWorkspaceData = () => {
             )}
           </header>
 
-          {/* CORPO DO WORKSPACE */}
-          <div className="flex-1 overflow-y-auto pr-1.5 space-y-5">
+          {/* CORPO ROLÁVEL DO WORKSPACE */}
+          <div className="flex-1 overflow-y-auto pr-1 space-y-5 pb-8">
             {globalModule === 'project' && (
               <>
-                <div className="p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="p-4 sm:p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
@@ -1235,50 +1406,54 @@ const fetchWorkspaceData = () => {
                         {selectedProject.statusText || activeStageMeta.label}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <h1 className="text-2xl font-bold tracking-tight text-white">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
                         {selectedProject.title}
                       </h1>
-                      <button
-                        onClick={() => openEditModal(selectedProject)}
-                        className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-xs text-slate-200 hover:text-cyan-200 flex items-center gap-1.5 transition"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Editar Projeto</span>
-                      </button>
-                      <button
-                        onClick={handleShareClientPortal}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs text-emerald-200 flex items-center gap-1.5 transition"
-                      >
-                        {copiedKey === `share-${selectedProject.id}` ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Link Copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Link do Cliente</span>
-                          </>
-                        )}
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => openEditModal(selectedProject)}
+                          className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-xs text-slate-200 hover:text-cyan-200 flex items-center gap-1.5 transition"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Editar Projeto</span>
+                        </button>
+                      )}
+                      {(isAdmin || selectedProject.domain?.share_token) && (
+                        <button
+                          onClick={handleShareClientPortal}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs text-emerald-200 flex items-center gap-1.5 transition"
+                        >
+                          {copiedKey === `share-${selectedProject.id}` ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Link Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Link do Cliente</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400">{selectedProject.subtitle}</p>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-black/35 p-3 rounded-xl border border-white/10">
-                    <div className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 bg-black/35 p-3 rounded-xl border border-white/10">
+                    <div className="text-left sm:text-right min-w-0">
+                      <div className="flex items-center sm:justify-end gap-1.5">
                         <span className="text-[10px] uppercase tracking-wider text-slate-400">Domínio:</span>
-                        <span className="text-xs font-mono font-semibold text-cyan-300">
+                        <span className="text-xs font-mono font-semibold text-cyan-300 truncate">
                           {selectedProject.domain.current || 'Não definido'}
                         </span>
                       </div>
 
                       {selectedProject.domain.future && selectedProject.domain.future.trim() !== '' ? (
-                        <div className="flex items-center justify-end gap-1.5 mt-1">
+                        <div className="flex items-center sm:justify-end gap-1.5 mt-1">
                           <span className="text-[10px] uppercase tracking-wider text-slate-500">Futuro:</span>
-                          <span className="text-xs font-mono text-indigo-300">
+                          <span className="text-xs font-mono text-indigo-300 truncate">
                             {selectedProject.domain.future}
                           </span>
                         </div>
@@ -1301,7 +1476,7 @@ const fetchWorkspaceData = () => {
                         href={`https://${selectedProject.domain.current}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-2.5 rounded-xl bg-white/[0.06] hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-slate-200 hover:text-cyan-200 transition"
+                        className="p-2.5 rounded-xl bg-white/[0.06] hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-slate-200 hover:text-cyan-200 transition shrink-0"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
@@ -1315,7 +1490,7 @@ const fetchWorkspaceData = () => {
                     <section
                       className={`${
                         projectSubTab === 'ficha' ? 'xl:col-span-3' : 'xl:col-span-1'
-                      } p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
+                      } p-4 sm:p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-4">
@@ -1323,20 +1498,22 @@ const fetchWorkspaceData = () => {
                             <FileCode className="w-4 h-4 text-cyan-400" />
                             <span>Ficha & Campos Customizados</span>
                           </h2>
-                          <button
-                            onClick={() => {
-                              openEditModal(selectedProject);
-                              setEditorTab('ficha');
-                            }}
-                            className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> Campo
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                openEditModal(selectedProject);
+                                setEditorTab('ficha');
+                              }}
+                              className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" /> Campo
+                            </button>
+                          )}
                         </div>
 
                         {selectedProject.dossier.length === 0 ? (
                           <div className="p-4 rounded-xl bg-black/25 border border-white/5 text-xs text-slate-500">
-                            Nenhum campo cadastrado. Clique em "+ Campo" para adicionar credenciais, documentos ou links.
+                            Nenhum campo cadastrado.
                           </div>
                         ) : (
                           <div className={`grid gap-2.5 ${projectSubTab === 'ficha' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
@@ -1427,15 +1604,17 @@ const fetchWorkspaceData = () => {
                             <Palette className="w-3.5 h-3.5 text-indigo-400" />
                             Paleta Hex do Projeto
                           </span>
-                          <button
-                            onClick={() => {
-                              openEditModal(selectedProject);
-                              setEditorTab('ficha');
-                            }}
-                            className="text-[11px] text-indigo-400 hover:text-indigo-300"
-                          >
-                            Editar Cores
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                openEditModal(selectedProject);
+                                setEditorTab('ficha');
+                              }}
+                              className="text-[11px] text-indigo-400 hover:text-indigo-300"
+                            >
+                              Editar Cores
+                            </button>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           {selectedProject.palette.map((color, idx) => {
@@ -1464,12 +1643,12 @@ const fetchWorkspaceData = () => {
                     </section>
                   )}
 
-                  {/* COLUNA 2: ARQUITETURA & ROTAS */}
+                  {/* COLUNA 2: ARQUITETURA, ROTAS & INFRA */}
                   {(projectSubTab === 'overview' || projectSubTab === 'architecture') && (
                     <section
                       className={`${
                         projectSubTab === 'architecture' ? 'xl:col-span-3' : 'xl:col-span-1'
-                      } p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
+                      } p-4 sm:p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-4">
@@ -1477,15 +1656,17 @@ const fetchWorkspaceData = () => {
                             <Layers className="w-4 h-4 text-indigo-400" />
                             <span>Árvore de Rotas & Subpáginas</span>
                           </h2>
-                          <button
-                            onClick={() => {
-                              openEditModal(selectedProject);
-                              setEditorTab('rotas');
-                            }}
-                            className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> Rota
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                openEditModal(selectedProject);
+                                setEditorTab('rotas');
+                              }}
+                              className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" /> Rota
+                            </button>
+                          )}
                         </div>
 
                         <div className="relative pl-3 border-l-2 border-indigo-500/30 space-y-3">
@@ -1529,22 +1710,24 @@ const fetchWorkspaceData = () => {
                         </div>
                       </div>
 
-                      {/* MAPA DE INFRAESTRUTURA E SERVIÇOS */}
+                      {/* MAPA DE INFRAESTRUTURA E SERVIÇOS (COM BOTÃO DE OLHO PARA OCULTAR DO LEITOR) */}
                       <div className="pt-4 border-t border-white/10">
                         <div className="flex items-center justify-between mb-3">
                           <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
                             <Terminal className="w-4 h-4 text-cyan-400" />
                             <span>Mapa de Infraestrutura & Custos</span>
                           </h2>
-                          <button
-                            onClick={() => {
-                              openEditModal(selectedProject);
-                              setEditorTab('rotas');
-                            }}
-                            className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> Serviço
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                openEditModal(selectedProject);
+                                setEditorTab('rotas');
+                              }}
+                              className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" /> Serviço
+                            </button>
+                          )}
                         </div>
 
                         {selectedProject.infrastructure?.length === 0 ? (
@@ -1555,6 +1738,7 @@ const fetchWorkspaceData = () => {
                           <div className={`grid gap-2.5 ${projectSubTab === 'architecture' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                             {(selectedProject.infrastructure || []).map((srv, idx) => {
                               const copyId = `infra-${selectedProject?.id}-${idx}`;
+                              const isMaskedInfra = Boolean(srv.masked);
                               const isPaidOrCredit =
                                 (srv.cost_status || '').toLowerCase().includes('crédito') ||
                                 (srv.cost_status || '').toLowerCase().includes('pago') ||
@@ -1574,35 +1758,64 @@ const fetchWorkspaceData = () => {
                                         <span className="text-[11px] font-semibold text-indigo-300">
                                           {srv.provider}
                                         </span>
+                                        {isAdmin && srv.is_secret && (
+                                          <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                            Oculto p/ Leitor
+                                          </span>
+                                        )}
                                       </div>
                                       <p className="text-xs font-bold text-white mt-1">{srv.name}</p>
                                     </div>
 
-                                    {srv.cost_status && (
-                                      <span
-                                        className={`px-2 py-0.5 text-[10px] font-mono rounded border shrink-0 ${
-                                          isPaidOrCredit
-                                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                                            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                                        }`}
-                                      >
-                                        {srv.cost_status}
-                                      </span>
-                                    )}
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {srv.cost_status && (
+                                        <span
+                                          className={`px-2 py-0.5 text-[10px] font-mono rounded border ${
+                                            isPaidOrCredit
+                                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                              : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                          }`}
+                                        >
+                                          {srv.cost_status}
+                                        </span>
+                                      )}
+                                      {isAdmin && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => toggleInfraSecret(e, idx)}
+                                          title={
+                                            srv.is_secret
+                                              ? 'IP/Notas ocultos para Leitor (Clique para liberar)'
+                                              : 'Visível para Leitor (Clique para ocultar IP/Notas)'
+                                          }
+                                          className={`p-1 rounded-lg border transition ${
+                                            srv.is_secret
+                                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                              : 'bg-white/[0.04] border-transparent text-slate-500 hover:text-slate-200'
+                                          }`}
+                                        >
+                                          {srv.is_secret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
 
                                   {srv.url_or_ip && (
                                     <div
-                                      onClick={() => handleCopy(srv.url_or_ip, copyId)}
-                                      className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 cursor-pointer group"
+                                      onClick={() => !isMaskedInfra && handleCopy(srv.url_or_ip, copyId)}
+                                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 group ${
+                                        isMaskedInfra ? 'cursor-not-allowed opacity-70' : 'hover:bg-white/[0.07] cursor-pointer'
+                                      }`}
                                     >
                                       <span className="text-[11px] font-mono text-slate-300 truncate">
                                         {srv.url_or_ip}
                                       </span>
-                                      {copiedKey === copyId ? (
-                                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                                      ) : (
-                                        <Copy className="w-3 h-3 text-slate-500 group-hover:text-cyan-300 shrink-0" />
+                                      {!isMaskedInfra && (
+                                        copiedKey === copyId ? (
+                                          <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                                        ) : (
+                                          <Copy className="w-3 h-3 text-slate-500 group-hover:text-cyan-300 shrink-0" />
+                                        )
                                       )}
                                     </div>
                                   )}
@@ -1620,30 +1833,32 @@ const fetchWorkspaceData = () => {
                       </div>
 
                       <div className="p-3.5 rounded-xl bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 border border-cyan-500/25">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                           <span className="text-xs font-semibold text-cyan-300 flex items-center gap-1.5">
                             <Send className="w-3.5 h-3.5" />
                             Resumo GA4 p/ WhatsApp
                           </span>
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={handleSyncGa4}
-                              disabled={isSyncingGa4}
-                              className="text-[10px] font-mono text-emerald-300 flex items-center gap-1 hover:text-emerald-200 transition"
-                            >
-                              <RefreshCw className={`w-3 h-3 ${isSyncingGa4 ? 'animate-spin' : ''}`} />
-                              {isSyncingGa4 ? 'Sincronizando...' : 'Auto Sync GA4'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                openEditModal(selectedProject);
-                                setEditorTab('seo');
-                              }}
-                              className="text-[10px] font-mono text-cyan-300 underline"
-                            >
-                              Editar Manualmente
-                            </button>
-                          </div>
+                          {canEdit && (
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={handleSyncGa4}
+                                disabled={isSyncingGa4}
+                                className="text-[10px] font-mono text-emerald-300 flex items-center gap-1 hover:text-emerald-200 transition"
+                              >
+                                <RefreshCw className={`w-3 h-3 ${isSyncingGa4 ? 'animate-spin' : ''}`} />
+                                {isSyncingGa4 ? 'Sincronizando...' : 'Auto Sync GA4'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  openEditModal(selectedProject);
+                                  setEditorTab('seo');
+                                }}
+                                className="text-[10px] font-mono text-cyan-300 underline"
+                              >
+                                Editar Manualmente
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
                           Cliques totais: <strong>{selectedProject.analyticsSummary.totalClicks}</strong> · WhatsApp: <strong>{selectedProject.analyticsSummary.whatsappClicks}</strong> · Destaque: <code className="text-cyan-300">{selectedProject.analyticsSummary.topPage}</code>
@@ -1675,7 +1890,7 @@ const fetchWorkspaceData = () => {
                     <section
                       className={`${
                         projectSubTab === 'seo' ? 'xl:col-span-3' : 'xl:col-span-1'
-                      } p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
+                      } p-4 sm:p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-4">
@@ -1683,14 +1898,16 @@ const fetchWorkspaceData = () => {
                             <Gauge className="w-4 h-4 text-emerald-400" />
                             <span>Lighthouse Scores</span>
                           </h2>
-                          <button
-                            onClick={triggerLiveAudit}
-                            disabled={isAuditing}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[10px] font-mono text-emerald-300 flex items-center gap-1 transition"
-                          >
-                            <RefreshCw className={`w-3 h-3 ${isAuditing ? 'animate-spin' : ''}`} />
-                            <span>{isAuditing ? 'Auditando...' : 'Auditar URL'}</span>
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={triggerLiveAudit}
+                              disabled={isAuditing}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[10px] font-mono text-emerald-300 flex items-center gap-1 transition"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${isAuditing ? 'animate-spin' : ''}`} />
+                              <span>{isAuditing ? 'Auditando...' : 'Auditar URL'}</span>
+                            </button>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2.5 mb-5">
@@ -1705,7 +1922,9 @@ const fetchWorkspaceData = () => {
                             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                               Switches de Indexação & Tags
                             </span>
-                            <span className="text-[10px] text-slate-500">Salvo no Postgres</span>
+                            <span className="text-[10px] text-slate-500">
+                              {canEdit ? 'Salvo no Postgres' : 'Somente Leitura'}
+                            </span>
                           </div>
 
                           {[
@@ -1718,8 +1937,11 @@ const fetchWorkspaceData = () => {
                             return (
                               <button
                                 key={tool.key}
+                                type="button"
                                 onClick={() => toggleHealthTool(tool.key)}
                                 className={`w-full p-2.5 rounded-xl border text-left transition flex items-center justify-between ${
+                                  !canEdit ? 'cursor-default' : ''
+                                } ${
                                   isActive
                                     ? 'bg-emerald-950/20 border-emerald-500/25 hover:border-emerald-400/50'
                                     : 'bg-rose-950/20 border-rose-500/25 hover:border-rose-400/50'
@@ -1761,83 +1983,81 @@ const fetchWorkspaceData = () => {
             )}
 
             {/* ===============================================================
-                MODO 2: LEMBRETES (AGORA COM SELECT DE PROJETO DIRETO NO FORM!)
+                MODO 2: LEMBRETES
             =============================================================== */}
             {globalModule === 'reminders' && (
-              <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
-                <div className="mb-8">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+              <div className="p-4 sm:p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
+                <div className="mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2.5">
                     <CalendarClock className="w-6 h-6 text-amber-400" />
                     <span>Central de Lembretes & Entregas Recorrentes</span>
                   </h2>
                   <p className="text-xs text-slate-400 mt-1.5">
-                    Escolha o projeto no seletor abaixo e agende tarefas sem precisar sair desta guia.
+                    Acompanhe as entregas periódicas e pendências operacionais dos projetos.
                   </p>
                 </div>
 
-                <form onSubmit={handleAddReminder} className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-8 p-4 rounded-xl bg-black/40 border border-white/10">
-                  {/* Select do Projeto */}
-                  <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
-                      Projeto / Cliente
-                    </label>
-                    <select
-                      value={newReminderProjectId || selectedProject.id}
-                      onChange={(e) => setNewReminderProjectId(e.target.value)}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-cyan-200 font-medium focus:outline-none focus:border-cyan-400"
-                    >
-                      {projects.map((proj) => (
-                        <option key={proj.id} value={proj.id}>
-                          {proj.title}
-                        </option>
-                      ))}
-                      <option value="geral-agencia">Geral / Agência</option>
-                    </select>
-                  </div>
+                {canEdit && (
+                  <form onSubmit={handleAddReminder} className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-8 p-4 rounded-xl bg-black/40 border border-white/10">
+                    <div className="md:col-span-3">
+                      <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                        Projeto / Cliente
+                      </label>
+                      <select
+                        value={newReminderProjectId || selectedProject.id}
+                        onChange={(e) => setNewReminderProjectId(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-cyan-200 font-medium focus:outline-none focus:border-cyan-400"
+                      >
+                        {projects.map((proj) => (
+                          <option key={proj.id} value={proj.id}>
+                            {proj.title}
+                          </option>
+                        ))}
+                        <option value="geral-agencia">Geral / Agência</option>
+                      </select>
+                    </div>
 
-                  {/* Descrição do Lembrete */}
-                  <div className="md:col-span-5">
-                    <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
-                      Tarefa ou Entrega
-                    </label>
-                    <input
-                      type="text"
-                      value={newReminderText}
-                      onChange={(e) => setNewReminderText(e.target.value)}
-                      placeholder="Ex: Enviar relatório mensal de cliques GA4..."
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400"
-                    />
-                  </div>
+                    <div className="md:col-span-5">
+                      <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                        Tarefa ou Entrega
+                      </label>
+                      <input
+                        type="text"
+                        value={newReminderText}
+                        onChange={(e) => setNewReminderText(e.target.value)}
+                        placeholder="Ex: Enviar relatório mensal de cliques GA4..."
+                        className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
 
-                  {/* Frequência */}
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
-                      Frequência
-                    </label>
-                    <select
-                      value={newReminderFreq}
-                      onChange={(e) => setNewReminderFreq(e.target.value)}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400"
-                    >
-                      <option value="Mensal · Todo dia 05">Mensal · Dia 05</option>
-                      <option value="Quinzenal">Quinzenal</option>
-                      <option value="Semanal">Semanal</option>
-                      <option value="Urgente · Único">Urgente · Único</option>
-                      <option value="Pré-Deploy">Pré-Deploy</option>
-                    </select>
-                  </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                        Frequência
+                      </label>
+                      <select
+                        value={newReminderFreq}
+                        onChange={(e) => setNewReminderFreq(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400"
+                      >
+                        <option value="Mensal · Todo dia 05">Mensal · Dia 05</option>
+                        <option value="Quinzenal">Quinzenal</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Urgente · Único">Urgente · Único</option>
+                        <option value="Pré-Deploy">Pré-Deploy</option>
+                      </select>
+                    </div>
 
-                  {/* Botão Agendar */}
-                  <div className="md:col-span-2 flex items-end">
-                    <button
-                      type="submit"
-                      className="w-full py-2 px-4 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Agendar</span>
-                    </button>
-                  </div>
-                </form>
+                    <div className="md:col-span-2 flex items-end">
+                      <button
+                        type="submit"
+                        className="w-full py-2 px-4 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Agendar</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 <div className="space-y-3">
                   {reminders.map((rem) => (
@@ -1851,8 +2071,9 @@ const fetchWorkspaceData = () => {
                     >
                       <div className="flex items-start gap-3.5">
                         <button
+                          type="button"
                           onClick={() => toggleReminderDone(rem.id)}
-                          className="mt-0.5 text-slate-400 hover:text-emerald-400 transition"
+                          className={`mt-0.5 text-slate-400 transition ${canEdit ? 'hover:text-emerald-400' : 'cursor-default'}`}
                         >
                           {rem.completed ? (
                             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -1861,7 +2082,7 @@ const fetchWorkspaceData = () => {
                           )}
                         </button>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
                               {rem.projectTitle}
                             </span>
@@ -1873,12 +2094,14 @@ const fetchWorkspaceData = () => {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => deleteReminder(rem.id)}
-                        className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => deleteReminder(rem.id)}
+                          className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1886,49 +2109,49 @@ const fetchWorkspaceData = () => {
             )}
 
             {/* ===============================================================
-                MODO 3: GUIA DEV (ESPAÇAMENTO CORRIGIDO + CRUD COMPLETO)
+                MODO 3: GUIA DEV
             =============================================================== */}
             {globalModule === 'devguide' && (
-              <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-white/10">
+              <div className="p-4 sm:p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-white/10">
                   <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                    <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2.5">
                       <Terminal className="w-6 h-6 text-indigo-400" />
-                      <span>Guia de Desenvolvimento & Snippets de Implantação</span>
+                      <span>Guia de Desenvolvimento & Snippets</span>
                     </h2>
-                    <p className="text-xs text-slate-400 mt-2">
-                      Blocos de código padronizados para colar rapidamente nos projetos estáticos ou sistemas na VPS.
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      Blocos de código padronizados para colar nos projetos ou sistemas na VPS.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {snippetsList.length === 0 && (
+                  {canEdit && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {snippetsList.length === 0 && (
+                        <button
+                          onClick={() => seedDefaultResources('snippet')}
+                          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition"
+                        >
+                          Carregar Padrões
+                        </button>
+                      )}
                       <button
-                        onClick={() => seedDefaultResources('snippet')}
-                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition"
+                        onClick={() => openCreateResourceModal('snippet')}
+                        className="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/35 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition"
                       >
-                        Carregar Snippets Padrão
+                        <Plus className="w-4 h-4" />
+                        <span>Novo Snippet</span>
                       </button>
-                    )}
-                    <button
-                      onClick={() => openCreateResourceModal('snippet')}
-                      className="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/35 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Novo Snippet</span>
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {snippetsList.length === 0 ? (
-                  <div className="p-8 rounded-2xl bg-black/35 border border-white/5 text-center space-y-3">
-                    <p className="text-xs text-slate-400">
-                      Nenhum snippet salvo no banco ainda. Clique em "Carregar Snippets Padrão" ou crie o seu primeiro bloco!
-                    </p>
+                  <div className="p-8 rounded-2xl bg-black/35 border border-white/5 text-center">
+                    <p className="text-xs text-slate-400">Nenhum snippet salvo no banco ainda.</p>
                   </div>
                 ) : (
                   <div className="space-y-5">
                     {snippetsList.map((snip) => (
-                      <div key={snip.id} className="p-5 rounded-xl bg-black/45 border border-white/10 text-left">
+                      <div key={snip.id} className="p-4 sm:p-5 rounded-xl bg-black/45 border border-white/10 text-left">
                         <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                           <div>
                             <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
@@ -1956,23 +2179,25 @@ const fetchWorkspaceData = () => {
                                 </>
                               )}
                             </button>
-                            <button
-                              onClick={() => openEditResourceModal(snip)}
-                              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-300 border border-white/10 transition"
-                              title="Editar Snippet"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteResource(snip.id)}
-                              className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 border border-white/10 transition"
-                              title="Excluir Snippet"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {canEdit && (
+                              <>
+                                <button
+                                  onClick={() => openEditResourceModal(snip)}
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-300 border border-white/10 transition"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteResource(snip.id)}
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 border border-white/10 transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
-                        <pre className="mt-3 p-4 rounded-xl bg-[#030508] border border-white/5 text-[11px] font-mono text-cyan-200 overflow-x-auto text-left">
+                        <pre className="mt-3 p-3.5 rounded-xl bg-[#030508] border border-white/5 text-[11px] font-mono text-cyan-200 overflow-x-auto text-left">
                           <code>{snip.content}</code>
                         </pre>
                       </div>
@@ -1983,51 +2208,51 @@ const fetchWorkspaceData = () => {
             )}
 
             {/* ===============================================================
-                MODO 4: REFERÊNCIAS (ESPAÇAMENTO CORRIGIDO + CRUD COMPLETO)
+                MODO 4: REFERÊNCIAS
             =============================================================== */}
             {globalModule === 'refs' && (
-              <div className="p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-white/10">
+              <div className="p-4 sm:p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-white/10">
                   <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                    <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2.5">
                       <Bookmark className="w-6 h-6 text-emerald-400" />
-                      <span>Banco de Referências & Ferramentas de Auditoria</span>
+                      <span>Banco de Referências & Ferramentas</span>
                     </h2>
-                    <p className="text-xs text-slate-400 mt-2">
-                      Links rápidos para inspiração visual e validação de páginas antes da entrega ao cliente.
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      Links rápidos para inspiração visual e validação de páginas.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {referencesList.length === 0 && (
+                  {canEdit && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {referencesList.length === 0 && (
+                        <button
+                          onClick={() => seedDefaultResources('reference')}
+                          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition"
+                        >
+                          Carregar Padrões
+                        </button>
+                      )}
                       <button
-                        onClick={() => seedDefaultResources('reference')}
-                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition"
+                        onClick={() => openCreateResourceModal('reference')}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/35 text-xs font-semibold text-emerald-200 flex items-center gap-1.5 transition"
                       >
-                        Carregar Links Padrão
+                        <Plus className="w-4 h-4" />
+                        <span>Nova Referência</span>
                       </button>
-                    )}
-                    <button
-                      onClick={() => openCreateResourceModal('reference')}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/35 text-xs font-semibold text-emerald-200 flex items-center gap-1.5 transition"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Nova Referência</span>
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {referencesList.length === 0 ? (
-                  <div className="p-8 rounded-2xl bg-black/35 border border-white/5 text-center space-y-3">
-                    <p className="text-xs text-slate-400">
-                      Nenhuma referência cadastrada ainda. Clique em "Carregar Links Padrão" ou adicione uma nova!
-                    </p>
+                  <div className="p-8 rounded-2xl bg-black/35 border border-white/5 text-center">
+                    <p className="text-xs text-slate-400">Nenhuma referência cadastrada ainda.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {referencesList.map((ref) => (
                       <div
                         key={ref.id}
-                        className="group p-5 rounded-xl bg-black/40 hover:bg-white/[0.04] border border-white/10 hover:border-emerald-400/40 transition flex flex-col justify-between text-left"
+                        className="group p-4 sm:p-5 rounded-xl bg-black/40 hover:bg-white/[0.04] border border-white/10 hover:border-emerald-400/40 transition flex flex-col justify-between text-left"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2">
@@ -2035,26 +2260,27 @@ const fetchWorkspaceData = () => {
                               {ref.category}
                             </span>
                             <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => openEditResourceModal(ref)}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-300 transition"
-                                title="Editar Referência"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteResource(ref.id)}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition"
-                                title="Excluir Referência"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {canEdit && (
+                                <>
+                                  <button
+                                    onClick={() => openEditResourceModal(ref)}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-300 transition"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteResource(ref.id)}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
                               <a
                                 href={ref.content}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 transition"
-                                title="Abrir Link"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
@@ -2077,24 +2303,174 @@ const fetchWorkspaceData = () => {
                 )}
               </div>
             )}
+
+            {/* ===============================================================
+                MODO 5: GERENCIAMENTO DE USUÁRIOS & CREDENCIAIS (APENAS ADMIN)
+            =============================================================== */}
+            {globalModule === 'users' && isAdmin && (
+              <div className="p-4 sm:p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 space-y-6">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2.5">
+                    <ShieldCheck className="w-6 h-6 text-cyan-400" />
+                    <span>Controle de Usuários & Credenciais de Produção</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Gerencie seu acesso de Administrador, a conta do seu sócio e os logins de visitantes guiados.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSaveUser} className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                      {userForm.id ? `Editando Usuário: ${userForm.name}` : 'Cadastrar Novo Usuário'}
+                    </span>
+                    {userForm.id && (
+                      <button
+                        type="button"
+                        onClick={() => setUserForm({ id: null, name: '', email: '', role: 'viewer', password: '' })}
+                        className="text-xs text-slate-400 hover:text-white underline"
+                      >
+                        Cancelar Edição
+                      </button>
+                    )}
+                  </div>
+
+                  {userFormFeedback && (
+                    <div className="p-2.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-xs text-cyan-200">
+                      {userFormFeedback}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <div className="md:col-span-3">
+                      <label className="block text-[10px] uppercase text-slate-400 mb-1">Nome Completo</label>
+                      <input
+                        type="text"
+                        required
+                        value={userForm.name}
+                        onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                        placeholder="Ex: Caio Monte"
+                        className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                    </div>
+
+                    <div className="md:col-span-3">
+                      <label className="block text-[10px] uppercase text-slate-400 mb-1">E-mail de Login</label>
+                      <input
+                        type="email"
+                        required
+                        value={userForm.email}
+                        onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                        placeholder="email@dominio.com"
+                        className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-[10px] uppercase text-slate-400 mb-1">Permissão</label>
+                      <select
+                        value={userForm.role}
+                        onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-cyan-200"
+                      >
+                        <option value="viewer">Leitor (Viewer)</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-[10px] uppercase text-slate-400 mb-1">
+                        {userForm.id ? 'Nova Senha (Opcional)' : 'Senha Inicial *'}
+                      </label>
+                      <input
+                        type="password"
+                        required={!userForm.id}
+                        value={userForm.password}
+                        onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                        placeholder={userForm.id ? 'Manter atual' : 'Mín. 6 dígitos'}
+                        className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 flex items-end">
+                      <button
+                        type="submit"
+                        className="w-full py-2 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>{userForm.id ? 'Atualizar' : 'Criar Conta'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                <div className="space-y-2.5">
+                  {usersList.map((u) => (
+                    <div
+                      key={u.id}
+                      className="p-4 rounded-xl bg-black/45 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-mono uppercase rounded border ${
+                              u.role === 'admin'
+                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                                : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                            }`}
+                          >
+                            {u.role === 'admin' ? 'Administrador' : 'Leitor'}
+                          </span>
+                          <h3 className="text-sm font-bold text-white">{u.name}</h3>
+                        </div>
+                        <p className="text-xs font-mono text-slate-400 mt-1">{u.email}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            setUserForm({ id: u.id, name: u.name, email: u.email, role: u.role, password: '' })
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 border border-white/10 text-xs text-slate-200 flex items-center gap-1.5 transition"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Editar / Trocar Senha</span>
+                        </button>
+                        {currentUser?.email !== u.email && (
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/15 border border-white/10 text-slate-400 hover:text-rose-400 transition"
+                            title="Revogar Acesso"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </main>
 
         {/* ===================================================================
-            COLUNA DIREITA: FEED DE PROJETOS (CHIPS DINÂMICOS DE CATEGORIA)
+            COLUNA DIREITA: PORTFÓLIO (VISÍVEL NO DESKTOP, NO MOBILE FICA NO DRAWER)
         =================================================================== */}
-        <section className="lg:col-span-3 xl:col-span-1 flex flex-col h-full min-w-0 overflow-hidden lg:border-l border-white/10 lg:pl-5">
+        <section className="hidden lg:flex lg:col-span-3 xl:col-span-1 flex-col h-full min-w-0 overflow-hidden lg:border-l border-white/10 lg:pl-5">
           <div className="space-y-3 mb-4 shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                 Portfólio & Sistemas
               </h2>
-              <button
-                onClick={openCreateModal}
-                className="text-[11px] font-mono text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 px-2.5 py-1 rounded-lg border border-cyan-500/30 flex items-center gap-1 transition"
-              >
-                <Plus className="w-3 h-3" /> Adicionar
-              </button>
+              {canEdit && (
+                <button
+                  onClick={openCreateModal}
+                  className="text-[11px] font-mono text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 px-2.5 py-1 rounded-lg border border-cyan-500/30 flex items-center gap-1 transition"
+                >
+                  <Plus className="w-3 h-3" /> Adicionar
+                </button>
+              )}
             </div>
 
             <div className="relative">
@@ -2193,8 +2569,8 @@ const fetchWorkspaceData = () => {
           </div>
         </section>
 
-        {/* ASIDE DE FILTROS (ESTÁGIOS DINÂMICOS) */}
-        <aside className="lg:col-span-2 xl:col-span-1 flex flex-col justify-between h-full rounded-2xl backdrop-blur-xl bg-white/[0.02] border border-white/10 p-4 overflow-y-auto">
+        {/* ASIDE DE FILTROS (DESKTOP) */}
+        <aside className="hidden lg:flex lg:col-span-2 xl:col-span-1 flex-col justify-between h-full rounded-2xl backdrop-blur-xl bg-white/[0.02] border border-white/10 p-4 overflow-y-auto">
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300">
@@ -2294,19 +2670,136 @@ const fetchWorkspaceData = () => {
       </div>
 
       {/* =====================================================================
-          MODAL 1: CRIAÇÃO E EDIÇÃO DE PROJETOS (COM CATEGORIAS E ESTÁGIOS LIVRES)
+          GAVETA MOBILE (CATÁLOGO DE PROJETOS + FILTROS DE ESTÁGIO/AUDITORIA)
+      ===================================================================== */}
+      {isMobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl p-4 overflow-y-auto">
+          <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <h2 className="text-sm font-bold uppercase tracking-wider text-white">
+                Catálogo de Projetos & Filtros
+              </h2>
+            </div>
+            <button
+              onClick={() => setIsMobileDrawerOpen(false)}
+              className="p-2 rounded-xl bg-white/10 text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3 mb-5">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar cliente, rota ou tag..."
+                className="w-full bg-white/[0.06] border border-white/15 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+
+            {/* Chips de Categoria */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+              {['Todos', ...allCategories].map((chip) => (
+                <button
+                  key={chip}
+                  onClick={() => setCategoryChip(chip)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium shrink-0 transition ${
+                    categoryChip === chip
+                      ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/40'
+                      : 'bg-white/[0.04] text-slate-400 border border-white/10'
+                  }`}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            {/* Seletores Rápidos de Estágio e Auditoria no Mobile */}
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={stageFilter}
+                onChange={(e) => setStageFilter(e.target.value)}
+                className="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200"
+              >
+                <option value="all">Estágio: Todos</option>
+                {allStages.map((stKey) => (
+                  <option key={stKey} value={stKey}>
+                    {getStageMeta(stKey).label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={auditFilter}
+                onChange={(e) => setAuditFilter(e.target.value)}
+                className="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200"
+              >
+                <option value="all">Filtro Técnico: Todos</option>
+                <option value="missing_ga4">GA4 Pendente</option>
+                <option value="gsc_verified">GSC Verificado</option>
+                <option value="missing_sitemap">Sem Sitemap.xml</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pb-6">
+            {filteredProjects.map((project) => {
+              const isSelected = project.id === selectedProject.id;
+              const stMeta = getStageMeta(project.status);
+              return (
+                <article
+                  key={project.id}
+                  onClick={() => {
+                    setSelectedProjectId(project.id);
+                    setGlobalModule('project');
+                    setIsMobileDrawerOpen(false);
+                  }}
+                  className={`rounded-2xl overflow-hidden border transition flex items-center gap-3 p-2.5 ${
+                    isSelected
+                      ? 'bg-cyan-500/15 border-cyan-400/60'
+                      : 'bg-white/[0.03] border-white/10'
+                  }`}
+                >
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    className="w-20 h-16 rounded-xl object-cover shrink-0 bg-slate-900"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${stMeta.dot}`} />
+                      <span className="text-[10px] font-mono text-cyan-300 uppercase">
+                        {project.category}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-white truncate mt-0.5">{project.title}</h3>
+                    <p className="text-xs text-slate-400 truncate">{project.subtitle}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          MODAL 1: CRIAÇÃO E EDIÇÃO DE PROJETOS
       ===================================================================== */}
       {isEditorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
-          <div className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl bg-slate-950/95 border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.85)] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-2 sm:p-4">
+          <div className="w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl bg-slate-950/95 border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.85)] overflow-hidden">
             
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+            <div className="px-4 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <div>
-                <h2 className="text-lg font-bold text-white">
+                <h2 className="text-base sm:text-lg font-bold text-white">
                   {editorMode === 'create' ? 'Cadastrar Novo Projeto / Cliente' : `Editando: ${draftProject.title}`}
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Controle total sobre categorias, estágios, campos da ficha, cores, rotas e domínios.
+                <p className="text-xs text-slate-400 hidden sm:block">
+                  Controle total sobre categorias, estágios, campos da ficha, cores, rotas e infraestrutura.
                 </p>
               </div>
               <button
@@ -2317,18 +2810,18 @@ const fetchWorkspaceData = () => {
               </button>
             </div>
 
-            <div className="px-6 py-2.5 bg-black/40 border-b border-white/10 flex flex-wrap gap-2">
+            <div className="px-4 sm:px-6 py-2.5 bg-black/40 border-b border-white/10 flex overflow-x-auto no-scrollbar gap-2">
               {[
-                { id: 'geral', label: '1. Geral, Categorias & Domínios' },
-                { id: 'ficha', label: '2. Ficha Dinâmica & Paleta' },
-                { id: 'rotas', label: '3. Rotas & Subpáginas' },
-                { id: 'seo', label: '4. Lighthouse & Relatório GA4' }
+                { id: 'geral', label: '1. Geral & Domínios' },
+                { id: 'ficha', label: '2. Ficha & Paleta' },
+                { id: 'rotas', label: '3. Rotas & Infra' },
+                { id: 'seo', label: '4. Lighthouse & GA4' }
               ].map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setEditorTab(t.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition ${
+                  className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-medium transition ${
                     editorTab === t.id
                       ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -2339,9 +2832,9 @@ const fetchWorkspaceData = () => {
               ))}
             </div>
 
-            <form onSubmit={handleSaveProject} className="flex-1 overflow-y-auto p-6 space-y-6">
+            <form onSubmit={handleSaveProject} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
               
-              {/* ABA 1: GERAL, CATEGORIAS E ESTÁGIOS CUSTOMIZÁVEIS */}
+              {/* ABA 1: GERAL */}
               {editorTab === 'geral' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -2366,7 +2859,6 @@ const fetchWorkspaceData = () => {
                     />
                   </div>
 
-                  {/* SELETOR + CRIADOR DE NOVA CATEGORIA */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs text-slate-400">Categoria do Projeto</label>
@@ -2385,7 +2877,7 @@ const fetchWorkspaceData = () => {
                           type="text"
                           value={newCategoryInput}
                           onChange={(e) => setNewCategoryInput(e.target.value)}
-                          placeholder="Digite a nova categoria (Ex: E-commerce)..."
+                          placeholder="Digite a nova categoria..."
                           className="flex-1 bg-white/[0.06] border border-cyan-400/50 rounded-xl px-3 py-2 text-xs text-white"
                         />
                         <button
@@ -2411,7 +2903,6 @@ const fetchWorkspaceData = () => {
                     )}
                   </div>
 
-                  {/* SELETOR + CRIADOR DE NOVO ESTÁGIO */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs text-slate-400">Estágio Operacional</label>
@@ -2430,7 +2921,7 @@ const fetchWorkspaceData = () => {
                           type="text"
                           value={newStageInput}
                           onChange={(e) => setNewStageInput(e.target.value)}
-                          placeholder="Ex: Em Homologação, Pausado, Aguardando Cliente..."
+                          placeholder="Ex: Em Homologação, Pausado..."
                           className="flex-1 bg-white/[0.06] border border-indigo-400/50 rounded-xl px-3 py-2 text-xs text-white"
                         />
                         <button
@@ -2457,7 +2948,7 @@ const fetchWorkspaceData = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Texto de Status Detalhado (Exibido no Topo)</label>
+                    <label className="block text-xs text-slate-400 mb-1">Texto de Status Detalhado</label>
                     <input
                       type="text"
                       value={draftProject.statusText}
@@ -2467,7 +2958,7 @@ const fetchWorkspaceData = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">URL da Imagem de Capa (Preview Card)</label>
+                    <label className="block text-xs text-slate-400 mb-1">URL da Imagem de Capa</label>
                     <input
                       type="text"
                       value={draftProject.image}
@@ -2486,7 +2977,6 @@ const fetchWorkspaceData = () => {
                     />
                   </div>
 
-                  {/* Bloco de Domínios */}
                   <div className="md:col-span-2 pt-4 border-t border-white/10 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs text-cyan-300 mb-1">Domínio Atual (Sem https://)</label>
@@ -2504,9 +2994,7 @@ const fetchWorkspaceData = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-indigo-300 mb-1">
-                        Domínio Futuro (Deixe vazio se já for o definitivo)
-                      </label>
+                      <label className="block text-xs text-indigo-300 mb-1">Domínio Futuro</label>
                       <input
                         type="text"
                         value={draftProject.domain.future}
@@ -2521,7 +3009,7 @@ const fetchWorkspaceData = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Provedor DNS / Hospedagem</label>
+                      <label className="block text-xs text-slate-400 mb-1">Provedor DNS</label>
                       <input
                         type="text"
                         value={draftProject.domain.dnsProvider}
@@ -2545,9 +3033,9 @@ const fetchWorkspaceData = () => {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <h3 className="text-sm font-bold text-white">Campos da Ficha Técnica (Genéricos)</h3>
+                        <h3 className="text-sm font-bold text-white">Campos da Ficha Técnica</h3>
                         <p className="text-xs text-slate-400">
-                          Adicione qualquer informação necessária (CREF, CNPJ, Repositório, Figma, E-mail, Senha, IP).
+                          Marque o ícone de olho para ocultar senhas ou chaves sensíveis do perfil Leitor.
                         </p>
                       </div>
                       <button
@@ -2555,7 +3043,7 @@ const fetchWorkspaceData = () => {
                         onClick={() =>
                           setDraftProject({
                             ...draftProject,
-                            dossier: [...draftProject.dossier, { category: 'Geral', label: '', value: '' }]
+                            dossier: [...draftProject.dossier, { category: 'Geral', label: '', value: '', is_secret: false }]
                           })
                         }
                         className="px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/30 text-xs text-cyan-200 flex items-center gap-1"
@@ -2566,28 +3054,28 @@ const fetchWorkspaceData = () => {
 
                     <div className="space-y-2.5">
                       {draftProject.dossier.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-black/40 p-2.5 rounded-xl border border-white/10">
+                        <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-black/40 p-2.5 rounded-xl border border-white/10">
                           <input
                             type="text"
-                            placeholder="Tag (Ex: Doc, Contato, Code)"
+                            placeholder="Tag (Ex: Doc, Analytics)"
                             value={item.category}
                             onChange={(e) => {
                               const next = [...draftProject.dossier];
                               next[idx].category = e.target.value;
                               setDraftProject({ ...draftProject, dossier: next });
                             }}
-                            className="col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300"
+                            className="sm:col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300"
                           />
                           <input
                             type="text"
-                            placeholder="Nome do Campo (Ex: CREF)"
+                            placeholder="Nome do Campo"
                             value={item.label}
                             onChange={(e) => {
                               const next = [...draftProject.dossier];
                               next[idx].label = e.target.value;
                               setDraftProject({ ...draftProject, dossier: next });
                             }}
-                            className="col-span-4 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            className="sm:col-span-4 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white"
                           />
                           <input
                             type="text"
@@ -2598,34 +3086,36 @@ const fetchWorkspaceData = () => {
                               next[idx].value = e.target.value;
                               setDraftProject({ ...draftProject, dossier: next });
                             }}
-                            className="col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
+                            className="sm:col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
                           />
-                          <button
-                            type="button"
-                            title={item.is_secret ? 'Oculto p/ Leitor' : 'Visível p/ Leitor'}
-                            onClick={() => {
-                              const next = [...draftProject.dossier];
-                              next[idx].is_secret = !next[idx].is_secret;
-                              setDraftProject({ ...draftProject, dossier: next });
-                            }}
-                            className={`col-span-1 flex justify-center p-1.5 rounded-lg border transition ${
-                              item.is_secret
-                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                                : 'bg-white/[0.04] border-white/10 text-slate-500 hover:text-white'
-                            }`}
-                          >
-                            {item.is_secret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = draftProject.dossier.filter((_, i) => i !== idx);
-                              setDraftProject({ ...draftProject, dossier: next });
-                            }}
-                            className="col-span-1 flex justify-center text-slate-500 hover:text-rose-400"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="sm:col-span-2 flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              title={item.is_secret ? 'Oculto p/ Leitor' : 'Visível p/ Leitor'}
+                              onClick={() => {
+                                const next = [...draftProject.dossier];
+                                next[idx].is_secret = !next[idx].is_secret;
+                                setDraftProject({ ...draftProject, dossier: next });
+                              }}
+                              className={`p-1.5 rounded-lg border transition ${
+                                item.is_secret
+                                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                  : 'bg-white/[0.04] border-white/10 text-slate-500 hover:text-white'
+                              }`}
+                            >
+                              {item.is_secret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = draftProject.dossier.filter((_, i) => i !== idx);
+                                setDraftProject({ ...draftProject, dossier: next });
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-rose-400"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2699,7 +3189,7 @@ const fetchWorkspaceData = () => {
                 </div>
               )}
 
-              {/* ABA 3: ROTAS & SUBPÁGINAS */}
+              {/* ABA 3: ROTAS & INFRAESTRUTURA */}
               {editorTab === 'rotas' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -2728,7 +3218,7 @@ const fetchWorkspaceData = () => {
 
                   <div className="space-y-3">
                     {draftProject.routes.map((rt, idx) => (
-                      <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-black/40 p-3 rounded-xl border border-white/10">
+                      <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-black/40 p-3 rounded-xl border border-white/10">
                         <input
                           type="text"
                           placeholder="Título (Ex: Loja de Roupas)"
@@ -2738,7 +3228,7 @@ const fetchWorkspaceData = () => {
                             next[idx].name = e.target.value;
                             setDraftProject({ ...draftProject, routes: next });
                           }}
-                          className="col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                          className="sm:col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white"
                         />
                         <input
                           type="text"
@@ -2749,7 +3239,7 @@ const fetchWorkspaceData = () => {
                             next[idx].path = e.target.value;
                             setDraftProject({ ...draftProject, routes: next });
                           }}
-                          className="col-span-2 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-mono text-indigo-300"
+                          className="sm:col-span-2 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-mono text-indigo-300"
                         />
                         <input
                           type="text"
@@ -2760,7 +3250,7 @@ const fetchWorkspaceData = () => {
                             next[idx].folder = e.target.value;
                             setDraftProject({ ...draftProject, routes: next });
                           }}
-                          className="col-span-2 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-400"
+                          className="sm:col-span-2 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-400"
                         />
                         <input
                           type="text"
@@ -2771,7 +3261,7 @@ const fetchWorkspaceData = () => {
                             next[idx].note = e.target.value;
                             setDraftProject({ ...draftProject, routes: next });
                           }}
-                          className="col-span-4 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300"
+                          className="sm:col-span-4 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300"
                         />
                         <button
                           type="button"
@@ -2779,7 +3269,7 @@ const fetchWorkspaceData = () => {
                             const next = draftProject.routes.filter((_, i) => i !== idx);
                             setDraftProject({ ...draftProject, routes: next });
                           }}
-                          className="col-span-1 flex justify-center text-slate-500 hover:text-rose-400"
+                          className="sm:col-span-1 flex justify-end sm:justify-center text-slate-500 hover:text-rose-400"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -2793,7 +3283,7 @@ const fetchWorkspaceData = () => {
                       <div>
                         <h3 className="text-sm font-bold text-white">Mapa de Infraestrutura & Custos</h3>
                         <p className="text-xs text-slate-400">
-                          Registre onde está o banco, backend, frontend, qual e-mail foi usado e se consome créditos.
+                          Registre onde está o banco, backend, frontend, qual e-mail foi usado e marque o olho se quiser ocultar IP/notas do Leitor.
                         </p>
                       </div>
                       <button
@@ -2809,7 +3299,8 @@ const fetchWorkspaceData = () => {
                                 type: 'Database',
                                 url_or_ip: '',
                                 cost_status: 'Gratuito (Student)',
-                                notes: ''
+                                notes: '',
+                                is_secret: false
                               }
                             ]
                           })
@@ -2861,12 +3352,12 @@ const fetchWorkspaceData = () => {
                                 next[idx].provider = e.target.value;
                                 setDraftProject({ ...draftProject, infrastructure: next });
                               }}
-                              className="sm:col-span-3 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300"
+                              className="sm:col-span-2 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300"
                             />
 
                             <input
                               type="text"
-                              placeholder="Custo (Ex: Crédito $100 / Grátis)"
+                              placeholder="Custo (Ex: Crédito $100)"
                               value={srv.cost_status}
                               onChange={(e) => {
                                 const next = [...draftProject.infrastructure];
@@ -2876,16 +3367,34 @@ const fetchWorkspaceData = () => {
                               className="sm:col-span-2 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-amber-300"
                             />
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = draftProject.infrastructure.filter((_, i) => i !== idx);
-                                setDraftProject({ ...draftProject, infrastructure: next });
-                              }}
-                              className="sm:col-span-1 flex justify-center text-slate-500 hover:text-rose-400"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="sm:col-span-2 flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                title={srv.is_secret ? 'IP/Notas ocultos p/ Leitor' : 'Visível p/ Leitor'}
+                                onClick={() => {
+                                  const next = [...draftProject.infrastructure];
+                                  next[idx].is_secret = !next[idx].is_secret;
+                                  setDraftProject({ ...draftProject, infrastructure: next });
+                                }}
+                                className={`p-1.5 rounded-lg border transition ${
+                                  srv.is_secret
+                                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                    : 'bg-white/[0.04] border-white/10 text-slate-500 hover:text-white'
+                                }`}
+                              >
+                                {srv.is_secret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = draftProject.infrastructure.filter((_, i) => i !== idx);
+                                  setDraftProject({ ...draftProject, infrastructure: next });
+                                }}
+                                className="p-1.5 text-slate-500 hover:text-rose-400"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -3019,7 +3528,7 @@ const fetchWorkspaceData = () => {
                               analyticsSummary: { ...draftProject.analyticsSummary, topPage: e.target.value }
                             })
                           }
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-cyan-300"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 text-xs font-mono text-cyan-300"
                         />
                       </div>
                     </div>
@@ -3065,7 +3574,7 @@ const fetchWorkspaceData = () => {
       )}
 
       {/* =====================================================================
-          MODAL 2: CRIAR E EDITAR SNIPPETS (GUIA DEV) E REFERÊNCIAS
+          MODAL 2: CRIAR E EDITAR SNIPPETS E REFERÊNCIAS
       ===================================================================== */}
       {isResourceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">

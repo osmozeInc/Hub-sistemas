@@ -41,6 +41,7 @@ class WorkspaceController extends Controller
         return response()->json([
             'token' => $token,
             'user' => [
+                'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
@@ -94,6 +95,7 @@ class WorkspaceController extends Controller
             'projects' => $projects,
             'reminders' => Reminder::latest()->get(),
             'resources' => Resource::orderBy('id', 'asc')->get(),
+            'users' => $isAdmin ? User::orderBy('id', 'asc')->get(['id', 'name', 'email', 'role', 'created_at']) : [],
         ]);
     }
 
@@ -311,6 +313,70 @@ class WorkspaceController extends Controller
         $this->ensureAdmin($request);
 
         $resource->delete();
+        return response()->json(['deleted' => true]);
+    }
+
+    public function storeUser(Request $request)
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:120',
+            'email' => 'required|email|unique:users,email',
+            'role' => 'required|string|in:admin,viewer',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return response()->json($user->only(['id', 'name', 'email', 'role', 'created_at']), 201);
+    }
+
+    public function updateUser(Request $request, User $user)
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:120',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'role' => 'required|string|in:admin,viewer',
+            'password' => 'nullable|string|min:6',
+        ]);
+
+        // Trava de segurança: impede que o Admin logado tire o próprio cargo de admin
+        if ($request->user()->id === $user->id && $validated['role'] !== 'admin') {
+            return response()->json(['message' => 'Você não pode remover seu próprio acesso de Administrador.'], 422);
+        }
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->role = $validated['role'];
+
+        if (!empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+
+        $user->save();
+
+        return response()->json($user->only(['id', 'name', 'email', 'role', 'created_at']));
+    }
+
+    public function destroyUser(Request $request, User $user)
+    {
+        $this->ensureAdmin($request);
+
+        if ($request->user()->id === $user->id) {
+            return response()->json(['message' => 'Você não pode excluir sua própria conta ativa.'], 422);
+        }
+
+        $user->tokens()->delete(); // Desconecta imediatamente qualquer sessão ativa desse usuário
+        $user->delete();
+
         return response()->json(['deleted' => true]);
     }
 }

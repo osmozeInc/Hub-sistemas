@@ -28,5 +28,10 @@ Route::prefix('workspace')->group(function () {
         Route::post('/resources', [WorkspaceController::class, 'storeResource']);
         Route::patch('/resources/{resource}', [WorkspaceController::class, 'updateResource']);
         Route::delete('/resources/{resource}', [WorkspaceController::class, 'destroyResource']);
+
+        // GERENCIAMENTO DE USUÁRIOS (Apenas Admin)
+        Route::post('/users', [WorkspaceController::class, 'storeUser']);
+        Route::patch('/users/{user}', [WorkspaceController::class, 'updateUser']);
+        Route::delete('/users/{user}', [WorkspaceController::class, 'destroyUser']);
     });
 });
