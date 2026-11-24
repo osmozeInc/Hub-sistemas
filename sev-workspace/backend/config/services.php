@@ -34,5 +34,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    
+    'pagespeed' => [
+        'key' => env('PAGESPEED_API_KEY'),
+    ],
 
 ];

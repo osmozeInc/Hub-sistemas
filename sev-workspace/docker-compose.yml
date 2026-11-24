@@ -22,13 +22,6 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/var/www/html
-    environment:
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_DATABASE: sev_workspace
-      DB_USERNAME: sev_user
-      DB_PASSWORD: sev_secret_password
     depends_on:
       - db
 

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Sparkles, Bell, BookOpen, Bookmark, FolderGit2, ExternalLink,
+  
+  Sparkles, Bell, BookOpen, Bookmark, ExternalLink,
   Copy, Check, Globe, ShieldCheck, AlertCircle, Layers,
   ArrowUpRight, Filter, Gauge, FileCode, CalendarClock,
   Terminal, Palette, Search, Plus, CheckCircle2,
-  Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save, Eye, EyeOff, Menu, Lock, Unlock
+  Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save, Eye, EyeOff, Menu, Lock, Unlock,
+  ChevronDown, ChevronRight, BarChart3
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL + 'api/workspace';
@@ -255,7 +257,7 @@ const EMPTY_PROJECT_TEMPLATE = {
     }
   ],
   health: {
-    lighthouse: { perf: 100, seo: 100, best: 100, a11y: 100 },
+    lighthouse: { perf: 0, seo: 0, best: 0, a11y: 0 },
     tools: { ga4: false, gsc: false, sitemap: false, robots: false }
   },
   analyticsSummary: { period: 'Mês Atual', totalClicks: 0, whatsappClicks: 0, topPage: '/index.html' }
@@ -270,7 +272,10 @@ const getStageMeta = (status) => {
     return { label: status === 'warning' ? 'Com Pendência' : status, dot: 'bg-amber-400 animate-pulse', badge: 'Pendência' };
   }
   if (s === 'dev' || s.includes('dev') || s.includes('desenv') || s.includes('homolog')) {
-    return { label: status === 'dev' ? 'Em Desenvolvimento' : status, dot: 'bg-indigo-400', badge: 'Em Dev' };
+    return { label: status === 'dev' ? 'Em Desenvolvimento' : status, dot: 'bg-indigo-400', badge: 'Desenvolvimento' };
+  }
+  if (s === 'test' || s.includes('test')) {
+    return { label: status === 'test' ? 'Fase de Testes' : status, dot: 'bg-emerald-400', badge: 'Testes' };
   }
   return { label: status || 'Customizado', dot: 'bg-cyan-400', badge: status || 'Ativo' };
 };
@@ -565,6 +570,110 @@ function PublicClientPortal({ token }) {
   );
 }
 
+function WorkspaceSkeleton({ activeSidePanel }) {
+  return (
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-950 text-slate-100">
+      <TechnoBackground />
+      <div className="relative z-10 flex flex-col lg:flex-row gap-5 w-full h-full p-3 sm:p-4 xl:p-6 overflow-hidden animate-pulse">
+        {/* Coluna Principal */}
+        <div className="flex-1 flex flex-col h-full min-w-0 space-y-4 overflow-hidden">
+          {/* Header Skeleton */}
+          <div className="w-full h-14 rounded-2xl bg-white/[0.04] border border-white/10 px-4 flex items-center justify-between gap-3 shrink-0">
+            <div className="h-7 w-32 rounded-xl bg-cyan-500/15" />
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="h-8 w-28 rounded-xl bg-white/[0.07]" />
+              <div className="h-8 w-24 rounded-xl bg-white/[0.05]" />
+              <div className="h-8 w-24 rounded-xl bg-white/[0.05]" />
+              <div className="h-8 w-24 rounded-xl bg-white/[0.05]" />
+            </div>
+            <div className="h-7 w-20 rounded-xl bg-white/[0.06]" />
+          </div>
+
+          {/* Sub-abas Skeleton */}
+          <div className="mx-auto h-10 w-80 max-w-full rounded-2xl bg-white/[0.04] border border-white/10 shrink-0" />
+
+          {/* Hero do Projeto */}
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+            <div className="space-y-2.5 flex-1">
+              <div className="h-3.5 w-36 rounded bg-cyan-500/15" />
+              <div className="h-7 w-56 rounded-lg bg-white/10" />
+              <div className="h-3.5 w-72 max-w-full rounded bg-white/[0.06]" />
+            </div>
+            <div className="h-16 w-full sm:w-56 rounded-xl bg-black/40 border border-white/10" />
+          </div>
+
+          {/* 3 Colunas de Conteúdo */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 flex-1 min-h-0">
+            {[0, 1, 2].map((col) => (
+              <div
+                key={col}
+                className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3"
+              >
+                <div className="h-4 w-36 rounded bg-white/10 mb-4" />
+                <div className="h-14 rounded-xl bg-black/35 border border-white/5" />
+                <div className="h-14 rounded-xl bg-black/35 border border-white/5" />
+                <div className="h-14 rounded-xl bg-black/35 border border-white/5" />
+                <div className="h-24 rounded-xl bg-black/30 border border-white/5 mt-4" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Coluna Portfólio (25% lg / 23% xl, sem chips de categoria) */}
+        <div className="hidden lg:flex lg:w-[25%] xl:w-[23%] min-w-[300px] shrink-0 flex-col h-full lg:border-l border-white/10 lg:pl-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-32 rounded bg-white/10" />
+            <div className="h-7 w-24 rounded-lg bg-cyan-500/15" />
+          </div>
+          <div className="h-9 w-full rounded-xl bg-slate-900/75 border border-white/10" />
+          <div className="space-y-3.5 flex-1 overflow-hidden">
+            {[0, 1, 2].map((card) => (
+              <div
+                key={card}
+                className="rounded-2xl overflow-hidden bg-white/[0.02] border border-white/10"
+              >
+                <div className="aspect-video w-full bg-white/[0.05]" />
+                <div className="p-3.5 space-y-2">
+                  <div className="h-4 w-32 rounded bg-white/10" />
+                  <div className="h-3 w-44 rounded bg-white/[0.06]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Painel Lateral Retrátil + Trilho de Ícones */}
+        <div className="hidden lg:flex items-stretch gap-2.5 h-full shrink-0">
+          {activeSidePanel && (
+            <div className="w-[235px] xl:w-[255px] flex flex-col justify-between h-full rounded-2xl bg-slate-950/75 border border-white/10 p-4">
+              <div className="space-y-4">
+                <div className="h-4 w-24 rounded bg-white/10" />
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  <div className="h-3 w-16 rounded bg-white/[0.06]" />
+                  <div className="h-8 w-full rounded-xl bg-white/[0.05]" />
+                  <div className="h-8 w-full rounded-xl bg-white/[0.04]" />
+                  <div className="h-8 w-full rounded-xl bg-white/[0.04]" />
+                </div>
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  <div className="h-3 w-20 rounded bg-white/[0.06]" />
+                  <div className="h-8 w-full rounded-xl bg-white/[0.04]" />
+                  <div className="h-8 w-full rounded-xl bg-white/[0.04]" />
+                </div>
+              </div>
+              <div className="h-9 w-full rounded-xl bg-white/[0.05]" />
+            </div>
+          )}
+
+          <div className="flex flex-col items-center gap-2 py-2.5 px-1.5 rounded-2xl bg-slate-950/75 border border-white/10 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/15" />
+            <div className="w-9 h-9 rounded-xl bg-white/[0.05]" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectWorkspaceHub() {
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('sev_auth_user');
@@ -595,7 +704,7 @@ export default function ProjectWorkspaceHub() {
   });
   const [customStages, setCustomStages] = useState(() => {
     const saved = localStorage.getItem('sev_custom_stages');
-    return saved ? JSON.parse(saved) : ['active', 'warning', 'dev'];
+    return saved ? JSON.parse(saved) : ['active', 'warning', 'dev', 'test'];
   });
 
   const [selectedProjectId, setSelectedProjectId] = useState('sev-market');
@@ -606,6 +715,23 @@ export default function ProjectWorkspaceHub() {
   const [categoryChip, setCategoryChip] = useState('Todos');
   const [stageFilter, setStageFilter] = useState('all');
   const [auditFilter, setAuditFilter] = useState('all');
+
+  // 'filters' | 'summary' | null (null = tudo minimizado em ícones)
+  //  const [activeSidePanel, setActiveSidePanel] = useState('filters');
+  const [activeSidePanel, setActiveSidePanel] = useState(null);
+  const [openFilterSections, setOpenFilterSections] = useState({
+    stage: true,
+    category: true,
+    audit: true
+  });
+
+  const toggleSidePanel = (panel) => {
+    setActiveSidePanel((prev) => (prev === panel ? null : panel));
+  };
+
+  const toggleFilterSection = (sectionKey) => {
+    setOpenFilterSections((prev) => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
+  };
 
   const [copiedKey, setCopiedKey] = useState(null);
 
@@ -636,6 +762,7 @@ export default function ProjectWorkspaceHub() {
   });
 
   const [isSyncingGa4, setIsSyncingGa4] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Sensor de tela Mobile (< 1024px), Gaveta Mobile e Trava de Segurança Mobile
   const [isMobile, setIsMobile] = useState(() =>
@@ -687,7 +814,6 @@ export default function ProjectWorkspaceHub() {
 
         setProjects(normProjects.length ? normProjects : INITIAL_PROJECTS);
         setReminders(normReminders);
-        setResources(fetchedResources);
         setResources(fetchedResources);
         setUsersList(data.users || []);
 
@@ -747,14 +873,70 @@ export default function ProjectWorkspaceHub() {
 
       const matchesAudit =
         auditFilter === 'all' ||
-        (auditFilter === 'missing_ga4' && !p.health?.tools?.ga4) ||
-        (auditFilter === 'gsc_verified' && p.health?.tools?.gsc) ||
-        (auditFilter === 'missing_sitemap' && !p.health?.tools?.sitemap);
+        (!p.health?.skipSeo && (
+          (auditFilter === 'missing_ga4' && !p.health?.tools?.ga4) ||
+          (auditFilter === 'gsc_verified' && p.health?.tools?.gsc) ||
+          (auditFilter === 'missing_sitemap' && !p.health?.tools?.sitemap)
+        ));
 
       return matchesSearch && matchesChip && matchesStage && matchesAudit;
     });
   }, [projects, searchQuery, categoryChip, stageFilter, auditFilter]);
 
+  const hasActiveFilters =
+    stageFilter !== 'all' ||
+    categoryChip !== 'Todos' ||
+    auditFilter !== 'all' ||
+    searchQuery.trim() !== '';
+
+  const agencyMetrics = useMemo(() => {
+    const total = projects.length;
+    const active = projects.filter((p) => p.status === 'active').length;
+    const warning = projects.filter((p) => p.status === 'warning').length;
+    const dev = projects.filter((p) => p.status === 'dev').length;
+
+    const monitored = projects.filter((p) => !p.health?.skipSeo);
+    const skippedSeo = total - monitored.length;
+
+    const missingGa4 = monitored.filter((p) => !p.health?.tools?.ga4).length;
+    const missingGsc = monitored.filter((p) => !p.health?.tools?.gsc).length;
+    const missingSitemap = monitored.filter((p) => !p.health?.tools?.sitemap).length;
+
+    const avgPerf = monitored.length
+      ? Math.round(monitored.reduce((acc, p) => acc + (p.health?.lighthouse?.perf || 0), 0) / monitored.length)
+      : 0;
+    const avgSeo = monitored.length
+      ? Math.round(monitored.reduce((acc, p) => acc + (p.health?.lighthouse?.seo || 0), 0) / monitored.length)
+      : 0;
+
+    const totalRoutes = projects.reduce((acc, p) => acc + (p.routes?.length || 0), 0);
+    const totalInfra = projects.reduce((acc, p) => acc + (p.infrastructure?.length || 0), 0);
+    const pendingMigrations = projects.filter((p) => p.domain?.future && p.domain.future.trim() !== '').length;
+
+    const totalClicks = projects.reduce((acc, p) => acc + (Number(p.analyticsSummary?.totalClicks) || 0), 0);
+    const totalWhatsApp = projects.reduce((acc, p) => acc + (Number(p.analyticsSummary?.whatsappClicks) || 0), 0);
+
+    const byCategory = projects.reduce((acc, p) => {
+      const cat = p.category || 'Sem categoria';
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {});
+
+    const pendingRem = reminders.filter((r) => !r.completed).length;
+    const doneRem = reminders.length - pendingRem;
+
+    return {
+      total, active, warning, dev,
+      monitoredCount: monitored.length, skippedSeo,
+      missingGa4, missingGsc, missingSitemap,
+      avgPerf, avgSeo,
+      totalRoutes, totalInfra, pendingMigrations,
+      totalClicks, totalWhatsApp,
+      byCategory: Object.entries(byCategory).sort((a, b) => b[1] - a[1]),
+      pendingRem, doneRem
+    };
+  }, [projects, reminders]);
+  
   const clientToken = new URLSearchParams(window.location.search).get('client_token');
   if (clientToken) {
     return <PublicClientPortal token={clientToken} />;
@@ -772,11 +954,7 @@ export default function ProjectWorkspaceHub() {
   }
 
   if (isLoading) {
-    return (
-      <div className="fixed inset-0 w-full h-full flex items-center justify-center bg-slate-950 text-cyan-400 font-mono text-sm">
-        [ CONECTANDO AO SERVIDOR VPS... ]
-      </div>
-    );
+    return <WorkspaceSkeleton activeSidePanel={activeSidePanel} />;
   }
 
   const pendingRemindersCount = reminders.filter((r) => !r.completed).length;
@@ -866,16 +1044,21 @@ export default function ProjectWorkspaceHub() {
   };
 
   const handleDeleteProject = () => {
-    if (!window.confirm(`Tem certeza que deseja excluir o projeto "${draftProject.title}"?`)) return;
-
-    apiFetch(`${API_BASE}/projects/${draftProject.id}`, { method: 'DELETE' })
-      .then(() => {
-        const remaining = projects.filter((p) => p.id !== draftProject.id);
-        setProjects(remaining);
-        if (remaining.length > 0) setSelectedProjectId(remaining[0].id);
-        setIsEditorOpen(false);
-      })
-      .catch((err) => console.error('Erro ao excluir:', err));
+    setConfirmDialog({
+      title: 'Excluir projeto',
+      description: `Tem certeza que deseja excluir "${draftProject.title}" permanentemente?`,
+      confirmLabel: 'Excluir projeto',
+      onConfirm: () => {
+        apiFetch(`${API_BASE}/projects/${draftProject.id}`, { method: 'DELETE' })
+          .then(() => {
+            const remaining = projects.filter((p) => p.id !== draftProject.id);
+            setProjects(remaining);
+            if (remaining.length > 0) setSelectedProjectId(remaining[0].id);
+            setIsEditorOpen(false);
+          })
+          .catch((err) => console.error('Erro ao excluir:', err));
+      }
+    });
   };
 
   const openCreateResourceModal = (type) => {
@@ -923,12 +1106,23 @@ export default function ProjectWorkspaceHub() {
   };
 
   const handleDeleteResource = (id) => {
-    if (!window.confirm('Deseja excluir este bloco permanentemente?')) return;
-    apiFetch(`${API_BASE}/resources/${id}`, { method: 'DELETE' })
-      .then(() => {
-        setResources((prev) => prev.filter((r) => r.id !== id));
-      })
-      .catch((err) => console.error('Erro ao excluir recurso:', err));
+    const target = resources.find((r) => r.id === id);
+    const tipo = target?.type === 'snippet' ? 'snippet' : 'referência';
+
+    setConfirmDialog({
+      title: `Excluir ${tipo}`,
+      description: target
+        ? `Deseja remover "${target.title}" permanentemente?`
+        : 'Deseja excluir este item permanentemente?',
+      confirmLabel: 'Excluir',
+      onConfirm: () => {
+        apiFetch(`${API_BASE}/resources/${id}`, { method: 'DELETE' })
+          .then(() => {
+            setResources((prev) => prev.filter((r) => r.id !== id));
+          })
+          .catch((err) => console.error('Erro ao excluir recurso:', err));
+      }
+    });
   };
 
   const handleSaveUser = (e) => {
@@ -967,16 +1161,22 @@ export default function ProjectWorkspaceHub() {
   };
 
   const handleDeleteUser = (u) => {
-    if (!window.confirm(`Tem certeza que deseja revogar o acesso de "${u.name}" (${u.email})?`)) return;
-    apiFetch(`${API_BASE}/users/${u.id}`, { method: 'DELETE' })
-      .then(async (res) => {
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || 'Não foi possível excluir');
-        }
-        setUsersList((prev) => prev.filter((item) => item.id !== u.id));
-      })
-      .catch((err) => alert(err.message));
+    setConfirmDialog({
+      title: 'Revogar acesso',
+      description: `Tem certeza que deseja remover o acesso de "${u.name}" (${u.email})?`,
+      confirmLabel: 'Revogar acesso',
+      onConfirm: () => {
+        apiFetch(`${API_BASE}/users/${u.id}`, { method: 'DELETE' })
+          .then(async (res) => {
+            if (!res.ok) {
+              const data = await res.json();
+              throw new Error(data.message || 'Não foi possível excluir');
+            }
+            setUsersList((prev) => prev.filter((item) => item.id !== u.id));
+          })
+          .catch((err) => alert(err.message));
+      }
+    });
   };
 
   const seedDefaultResources = async (type) => {
@@ -1150,8 +1350,19 @@ export default function ProjectWorkspaceHub() {
 
   const deleteReminder = (id) => {
     if (!canEdit) return;
-    setReminders((prev) => prev.filter((r) => r.id !== id));
-    apiFetch(`${API_BASE}/reminders/${id}`, { method: 'DELETE' }).catch(() => {});
+    const target = reminders.find((r) => r.id === id);
+
+    setConfirmDialog({
+      title: 'Excluir lembrete',
+      description: target
+        ? `Deseja excluir o lembrete "${target.title}"?`
+        : 'Deseja excluir este lembrete?',
+      confirmLabel: 'Excluir',
+      onConfirm: () => {
+        setReminders((prev) => prev.filter((r) => r.id !== id));
+        apiFetch(`${API_BASE}/reminders/${id}`, { method: 'DELETE' }).catch(() => {});
+      }
+    });
   };
 
   const generateWhatsAppReport = (project) => {
@@ -1168,13 +1379,12 @@ export default function ProjectWorkspaceHub() {
       <TechnoBackground />
 
       {/* CONTAINER PRINCIPAL (1 Coluna Fluida no Mobile | 65% 23% 12% no Desktop) */}
-      <div className="relative z-10 flex flex-col lg:grid lg:grid-cols-12 xl:grid-cols-[65fr_23fr_12fr] gap-5 w-full h-full p-3 sm:p-4 xl:p-6 overflow-hidden">
+      <div className="relative z-10 flex flex-col lg:flex-row gap-5 w-full h-full p-3 sm:p-4 xl:p-6 overflow-hidden">
         
         {/* ===================================================================
-            PAINEL ESQUERDO (100% no Mobile | 65% no Desktop)
+            PAINEL ESQUERDO (Expande automaticamente ao minimizar a lateral)
         =================================================================== */}
-        <main className="lg:col-span-7 xl:col-span-1 flex flex-col h-full min-w-0 overflow-hidden">
-          
+        <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">          
           {/* HEADER LIQUID GLASS RESPONSIVO */}
           <header className="sticky top-0 z-30 flex flex-col items-center w-full mb-3 lg:mb-5 shrink-0">
             <div className="w-full px-3 py-2.5 rounded-2xl backdrop-blur-xl bg-white/[0.04] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -1226,7 +1436,7 @@ export default function ProjectWorkspaceHub() {
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
                   }`}
                 >
-                  <FolderGit2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <Globe className="w-4 h-4 text-cyan-400 shrink-0" />
                   <span className="truncate max-w-[140px] sm:max-w-[180px]">{selectedProject.title}</span>
                 </button>
 
@@ -1308,18 +1518,9 @@ export default function ProjectWorkspaceHub() {
                     <span>{allowMobileEdit ? 'EDIÇÃO LIBERADA' : 'MODO LEITURA'}</span>
                   </button>
                 )}
-                <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-mono text-slate-300">
-                  {isAdmin ? 'ADMIN' : 'MODO LEITOR'}
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 select-none px-1">
+                  {isAdmin ? 'Admin' : 'Leitor'}
                 </span>
-                {canEdit && (
-                  <button
-                    onClick={openCreateModal}
-                    className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/35 text-cyan-200 text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Novo Projeto</span>
-                  </button>
-                )}
                 <button
                   onClick={fetchWorkspaceData}
                   title="Sincronizar com o PostgreSQL"
@@ -1406,14 +1607,14 @@ export default function ProjectWorkspaceHub() {
                         {selectedProject.statusText || activeStageMeta.label}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                    <div className="flex flex-wrap items-end gap-4">
+                      <h1 className="!mb-2 !mt-4 text-xl sm:text-2xl font-bold leading-none tracking-tight text-white ">
                         {selectedProject.title}
                       </h1>
                       {canEdit && (
                         <button
                           onClick={() => openEditModal(selectedProject)}
-                          className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-xs text-slate-200 hover:text-cyan-200 flex items-center gap-1.5 transition"
+                          className="!mb-4 !mt-4 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-xs text-slate-200 hover:text-cyan-200 flex items-center gap-1.5 transition"
                         >
                           <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
                           <span>Editar Projeto</span>
@@ -1422,7 +1623,7 @@ export default function ProjectWorkspaceHub() {
                       {(isAdmin || selectedProject.domain?.share_token) && (
                         <button
                           onClick={handleShareClientPortal}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs text-emerald-200 flex items-center gap-1.5 transition"
+                          className="!mb-4 !mt-4 px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs text-emerald-200 flex items-center gap-1.5 transition"
                         >
                           {copiedKey === `share-${selectedProject.id}` ? (
                             <>
@@ -1450,17 +1651,11 @@ export default function ProjectWorkspaceHub() {
                         </span>
                       </div>
 
-                      {selectedProject.domain.future && selectedProject.domain.future.trim() !== '' ? (
+                      {selectedProject.domain.future && selectedProject.domain.future.trim() !== '' && (
                         <div className="flex items-center sm:justify-end gap-1.5 mt-1">
                           <span className="text-[10px] uppercase tracking-wider text-slate-500">Futuro:</span>
                           <span className="text-xs font-mono text-indigo-300 truncate">
                             {selectedProject.domain.future}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="mt-1">
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-300">
-                            Domínio Definitivo Ativo
                           </span>
                         </div>
                       )}
@@ -1669,38 +1864,41 @@ export default function ProjectWorkspaceHub() {
                           )}
                         </div>
 
-                        <div className="relative pl-3 border-l-2 border-indigo-500/30 space-y-3">
+                        <div className="relative pl-3 border-l-2 border-cyan-500/25 space-y-3">
                           {selectedProject.routes.map((route, idx) => (
                             <div
                               key={idx}
-                              className="relative p-3 rounded-xl bg-black/35 border border-white/5 hover:border-indigo-400/30 transition group"
+                              className="relative p-3.5 rounded-xl bg-black/35 border border-white/5 hover:border-cyan-500/30 transition group"
                             >
-                              <div className="flex items-start justify-between gap-2">
-                                <div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
                                   <div className="flex items-center gap-2">
                                     <span
-                                      className={`h-2 w-2 rounded-full ${
+                                      className={`h-2 w-2 rounded-full shrink-0 ${
                                         route.status === 'online' ? 'bg-emerald-400' : 'bg-amber-400'
                                       }`}
                                     />
                                     <p className="text-xs font-semibold text-white">{route.name}</p>
                                   </div>
-                                  <div className="flex items-center gap-2 mt-1.5">
-                                    <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-mono text-[10px] border border-indigo-500/25">
-                                      {route.path}
-                                    </span>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] font-mono">
+                                    <span className="text-cyan-300/90">{route.path}</span>
                                     {route.folder && (
-                                      <span className="text-[10px] font-mono text-slate-500">dir: {route.folder}</span>
+                                      <>
+                                        <span className="text-slate-600">·</span>
+                                        <span className="text-slate-500">dir: {route.folder}</span>
+                                      </>
                                     )}
                                   </div>
-                                  {route.note && <p className="text-[11px] text-slate-400 mt-1.5">{route.note}</p>}
+                                  {route.note && (
+                                    <p className="text-xs text-slate-400 mt-2 leading-relaxed">{route.note}</p>
+                                  )}
                                 </div>
 
                                 <a
                                   href={`https://${selectedProject.domain.current}${route.path === '/index.html' ? '' : route.path}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-200 transition shrink-0"
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-200 transition shrink-0"
                                 >
                                   <ArrowUpRight className="w-3.5 h-3.5" />
                                 </a>
@@ -1747,57 +1945,54 @@ export default function ProjectWorkspaceHub() {
                               return (
                                 <div
                                   key={idx}
-                                  className="p-3 rounded-xl bg-black/40 border border-white/10 hover:border-cyan-500/30 transition space-y-2"
+                                  className="p-3.5 rounded-xl bg-black/40 border border-white/10 hover:border-cyan-500/30 transition space-y-2.5"
                                 >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                      <div className="flex flex-wrap items-center gap-1.5">
-                                        <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-semibold text-white">{srv.name}</p>
+                                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mt-1.5 text-[11px]">
+                                        <span className="font-mono uppercase text-[10px] text-cyan-300/90">
                                           {srv.type || 'Serviço'}
                                         </span>
-                                        <span className="text-[11px] font-semibold text-indigo-300">
-                                          {srv.provider}
-                                        </span>
+                                        {srv.provider && (
+                                          <>
+                                            <span className="text-slate-600">·</span>
+                                            <span className="text-slate-300">{srv.provider}</span>
+                                          </>
+                                        )}
+                                        {srv.cost_status && (
+                                          <>
+                                            <span className="text-slate-600">·</span>
+                                            <span className="font-mono text-slate-400">{srv.cost_status}</span>
+                                          </>
+                                        )}
                                         {isAdmin && srv.is_secret && (
-                                          <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                                            Oculto p/ Leitor
-                                          </span>
+                                          <>
+                                            <span className="text-slate-600">·</span>
+                                            <span className="font-mono text-amber-400/80">Oculto</span>
+                                          </>
                                         )}
                                       </div>
-                                      <p className="text-xs font-bold text-white mt-1">{srv.name}</p>
                                     </div>
 
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                      {srv.cost_status && (
-                                        <span
-                                          className={`px-2 py-0.5 text-[10px] font-mono rounded border ${
-                                            isPaidOrCredit
-                                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                                              : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                                          }`}
-                                        >
-                                          {srv.cost_status}
-                                        </span>
-                                      )}
-                                      {isAdmin && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => toggleInfraSecret(e, idx)}
-                                          title={
-                                            srv.is_secret
-                                              ? 'IP/Notas ocultos para Leitor (Clique para liberar)'
-                                              : 'Visível para Leitor (Clique para ocultar IP/Notas)'
-                                          }
-                                          className={`p-1 rounded-lg border transition ${
-                                            srv.is_secret
-                                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                                              : 'bg-white/[0.04] border-transparent text-slate-500 hover:text-slate-200'
-                                          }`}
-                                        >
-                                          {srv.is_secret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                        </button>
-                                      )}
-                                    </div>
+                                    {isAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => toggleInfraSecret(e, idx)}
+                                        title={
+                                          srv.is_secret
+                                            ? 'IP/Notas ocultos para Leitor (Clique para liberar)'
+                                            : 'Visível para Leitor (Clique para ocultar IP/Notas)'
+                                        }
+                                        className={`p-1.5 rounded-lg border transition shrink-0 ${
+                                          srv.is_secret
+                                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                            : 'bg-white/[0.04] border-transparent text-slate-500 hover:text-slate-200 hover:bg-white/10'
+                                        }`}
+                                      >
+                                        {srv.is_secret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                      </button>
+                                    )}
                                   </div>
 
                                   {srv.url_or_ip && (
@@ -1892,13 +2087,38 @@ export default function ProjectWorkspaceHub() {
                         projectSubTab === 'seo' ? 'xl:col-span-3' : 'xl:col-span-1'
                       } p-4 sm:p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
                     >
+                      {selectedProject.health?.skipSeo ? (
+                        <div className="flex flex-col items-center justify-center text-center py-10 px-4 space-y-3 my-auto">
+                          <Gauge className="w-7 h-7 text-slate-600" />
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-slate-300">
+                              SEO & Indexação não aplicáveis
+                            </p>
+                            <p className="text-[11px] text-slate-500 max-w-xs">
+                              Auditoria de Lighthouse, GA4, GSC, sitemap e robots.txt desativada para este projeto.
+                            </p>
+                          </div>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                openEditModal(selectedProject);
+                                setEditorTab('seo');
+                              }}
+                              className="text-[11px] text-cyan-400 hover:text-cyan-300 underline"
+                            >
+                              Reativar nas configurações
+                            </button>
+                          )}
+                        </div>
+                      ) : (
                       <div>
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
                             <Gauge className="w-4 h-4 text-emerald-400" />
                             <span>Lighthouse Scores</span>
                           </h2>
-                          {canEdit && (
+                          {canEdit && projectSubTab === 'seo' && (
                             <button
                               onClick={triggerLiveAudit}
                               disabled={isAuditing}
@@ -1976,6 +2196,7 @@ export default function ProjectWorkspaceHub() {
                           })}
                         </div>
                       </div>
+                    )}
                     </section>
                   )}
                 </div>
@@ -2083,12 +2304,11 @@ export default function ProjectWorkspaceHub() {
                         </button>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
-                              {rem.projectTitle}
-                            </span>
-                            <span className="text-[11px] font-mono text-amber-300">{rem.frequency}</span>
+                            <span className="text-xs font-semibold text-cyan-300">{rem.projectTitle}</span>
+                            <span className="text-slate-600">·</span>
+                            <span className="text-[11px] font-mono text-slate-400">{rem.frequency}</span>
                           </div>
-                          <p className={`text-sm mt-1.5 ${rem.completed ? 'line-through text-slate-500' : 'text-slate-100'}`}>
+                          <p className={`text-sm mt-2 ${rem.completed ? 'line-through text-slate-500' : 'text-slate-100'}`}>
                             {rem.title}
                           </p>
                         </div>
@@ -2256,7 +2476,7 @@ export default function ProjectWorkspaceHub() {
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                            <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 leading-none rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
                               {ref.category}
                             </span>
                             <div className="flex items-center gap-1.5">
@@ -2411,19 +2631,14 @@ export default function ProjectWorkspaceHub() {
                       className="p-4 rounded-xl bg-black/45 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-0.5 text-[10px] font-mono uppercase rounded border ${
-                              u.role === 'admin'
-                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                                : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
-                            }`}
-                          >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-bold text-white">{u.name}</h3>
+                          <span className="text-slate-600">·</span>
+                          <span className={`text-xs font-medium ${u.role === 'admin' ? 'text-cyan-400' : 'text-slate-400'}`}>
                             {u.role === 'admin' ? 'Administrador' : 'Leitor'}
                           </span>
-                          <h3 className="text-sm font-bold text-white">{u.name}</h3>
                         </div>
-                        <p className="text-xs font-mono text-slate-400 mt-1">{u.email}</p>
+                        <p className="text-xs font-mono text-slate-400 mt-2">{u.email}</p>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -2457,47 +2672,31 @@ export default function ProjectWorkspaceHub() {
         {/* ===================================================================
             COLUNA DIREITA: PORTFÓLIO (VISÍVEL NO DESKTOP, NO MOBILE FICA NO DRAWER)
         =================================================================== */}
-        <section className="hidden lg:flex lg:col-span-3 xl:col-span-1 flex-col h-full min-w-0 overflow-hidden lg:border-l border-white/10 lg:pl-5">
+        <section className="hidden lg:flex lg:w-[25%] xl:w-[23%] min-w-[300px] shrink-0 flex-col h-full min-w-0 overflow-hidden lg:border-l border-white/10 lg:pl-5">
           <div className="space-y-3 mb-4 shrink-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                 Portfólio & Sistemas
               </h2>
               {canEdit && (
                 <button
                   onClick={openCreateModal}
-                  className="text-[11px] font-mono text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 px-2.5 py-1 rounded-lg border border-cyan-500/30 flex items-center gap-1 transition"
+                  className="text-[11px] font-semibold text-cyan-200 bg-cyan-950/80 hover:bg-cyan-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-cyan-400/40 flex items-center gap-1 transition shrink-0"
                 >
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3.5 h-3.5" /> Novo Projeto
                 </button>
               )}
             </div>
 
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar cliente, rota ou tag..."
-                className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/50 transition"
+                className="w-full bg-slate-900/75 backdrop-blur-md border border-white/15 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:border-cyan-400/60 focus:bg-slate-900/90 transition"
               />
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-              {['Todos', ...allCategories].map((chip) => (
-                <button
-                  key={chip}
-                  onClick={() => setCategoryChip(chip)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium shrink-0 transition ${
-                    categoryChip === chip
-                      ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
-                      : 'bg-white/[0.03] text-slate-400 border border-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  {chip}
-                </button>
-              ))}
             </div>
           </div>
 
@@ -2569,104 +2768,337 @@ export default function ProjectWorkspaceHub() {
           </div>
         </section>
 
-        {/* ASIDE DE FILTROS (DESKTOP) */}
-        <aside className="hidden lg:flex lg:col-span-2 xl:col-span-1 flex-col justify-between h-full rounded-2xl backdrop-blur-xl bg-white/[0.02] border border-white/10 p-4 overflow-y-auto">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                <Filter className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Filtros</span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500">Aside</span>
-            </div>
+        {/* ===================================================================
+            PAINEL LATERAL RETRÁTIL (FILTROS <-> RESUMO DA AGÊNCIA) + RAIL DE ÍCONES
+        =================================================================== */}
+        <div className="hidden lg:flex items-stretch gap-2.5 h-full shrink-0">
+          {activeSidePanel && (
+            <aside className="w-[235px] xl:w-[255px] flex flex-col justify-between h-full rounded-2xl backdrop-blur-xl bg-slate-950/75 border border-white/10 p-4 overflow-y-auto">
+              {/* ABA: FILTROS */}
+              {activeSidePanel === 'filters' && (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-200">
+                        <Filter className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Filtros</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSidePanel(null)}
+                        title="Minimizar painel"
+                        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
 
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Estágio</p>
-              <button
-                onClick={() => setStageFilter('all')}
-                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
-                  stageFilter === 'all'
-                    ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
-                    : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-                }`}
-              >
-                <span className="truncate">Todos os Projetos</span>
-              </button>
-              {allStages.map((stKey) => {
-                const meta = getStageMeta(stKey);
-                return (
+                    {/* Seção Retrátil: Estágio */}
+                    <div className="border-b border-white/5 pb-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFilterSection('stage')}
+                        className="w-full flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 py-1 transition"
+                      >
+                        <span>Estágio</span>
+                        {openFilterSections.stage ? (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      {openFilterSections.stage && (
+                        <div className="space-y-1 mt-2">
+                          <button
+                            onClick={() => setStageFilter('all')}
+                            className={`w-full text-left px-3 py-1.5 rounded-xl text-xs transition flex items-center justify-between ${
+                              stageFilter === 'all'
+                                ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
+                                : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                            }`}
+                          >
+                            <span className="truncate">Todos os Projetos</span>
+                          </button>
+                          {allStages.map((stKey) => {
+                            const meta = getStageMeta(stKey);
+                            return (
+                              <button
+                                key={stKey}
+                                onClick={() => setStageFilter(stKey)}
+                                className={`w-full text-left px-3 py-1.5 rounded-xl text-xs transition flex items-center justify-between ${
+                                  stageFilter === stKey
+                                    ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
+                                    : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                                }`}
+                              >
+                                <span className="truncate">{meta.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Seção Retrátil: Categoria */}
+                    <div className="border-b border-white/5 pb-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFilterSection('category')}
+                        className="w-full flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 py-1 transition"
+                      >
+                        <span>Categoria</span>
+                        {openFilterSections.category ? (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      {openFilterSections.category && (
+                        <div className="space-y-1 mt-2">
+                          {['Todos', ...allCategories].map((cat) => (
+                            <button
+                              key={cat}
+                              onClick={() => setCategoryChip(cat)}
+                              className={`w-full text-left px-3 py-1.5 rounded-xl text-xs transition flex items-center justify-between ${
+                                categoryChip === cat
+                                  ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
+                                  : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                              }`}
+                            >
+                              <span className="truncate">{cat}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Seção Retrátil: Auditoria Técnica */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => toggleFilterSection('audit')}
+                        className="w-full flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 py-1 transition"
+                      >
+                        <span>Auditoria Técnica</span>
+                        {openFilterSections.audit ? (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      {openFilterSections.audit && (
+                        <div className="space-y-1 mt-2">
+                          {[
+                            { id: 'all', label: 'Sem Filtro Técnico' },
+                            { id: 'missing_ga4', label: 'GA4 Pendente' },
+                            { id: 'gsc_verified', label: 'GSC Verificado' },
+                            { id: 'missing_sitemap', label: 'Sem Sitemap.xml' }
+                          ].map((audit) => (
+                            <button
+                              key={audit.id}
+                              onClick={() => setAuditFilter(audit.id)}
+                              className={`w-full text-left px-3 py-1.5 rounded-xl text-xs transition ${
+                                auditFilter === audit.id
+                                  ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
+                                  : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                              }`}
+                            >
+                              {audit.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <button
-                    key={stKey}
-                    onClick={() => setStageFilter(stKey)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
-                      stageFilter === stKey
-                        ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
-                        : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-                    }`}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCategoryChip('Todos');
+                      setStageFilter('all');
+                      setAuditFilter('all');
+                    }}
+                    className="w-full mt-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs text-slate-300 hover:text-white border border-white/10 transition shrink-0"
                   >
-                    <span className="truncate">{meta.label}</span>
+                    Limpar Filtros
                   </button>
-                );
-              })}
-            </div>
+                </>
+              )}
 
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Auditoria Técnica
-              </p>
-              {[
-                { id: 'all', label: 'Sem Filtro Técnico' },
-                { id: 'missing_ga4', label: 'GA4 Pendente' },
-                { id: 'gsc_verified', label: 'GSC Verificado' },
-                { id: 'missing_sitemap', label: 'Sem Sitemap.xml' }
-              ].map((audit) => (
-                <button
-                  key={audit.id}
-                  onClick={() => setAuditFilter(audit.id)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs transition ${
-                    auditFilter === audit.id
-                      ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-400/30 font-medium'
-                      : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-                  }`}
-                >
-                  {audit.label}
-                </button>
-              ))}
-            </div>
+              {/* ABA: RESUMO DA AGÊNCIA EXPANDIDO */}
+              {activeSidePanel === 'summary' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-200">
+                      <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Resumo da Agência</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSidePanel(null)}
+                      title="Minimizar painel"
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
 
-            <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Resumo da Agência
-              </p>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">Total Páginas</span>
-                <span className="font-mono text-white">{projects.length}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">GA4 Pendentes</span>
-                <span className="font-mono text-rose-400">
-                  {projects.filter((p) => !p.health?.tools?.ga4).length}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">Alertas Ativos</span>
-                <span className="font-mono text-amber-300">{pendingRemindersCount}</span>
-              </div>
-            </div>
+                  {/* Portfólio por Estágio */}
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Portfólio ({agencyMetrics.total})
+                    </p>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">100% Saudáveis</span>
+                      <span className="font-mono text-emerald-400">{agencyMetrics.active}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Com Pendência</span>
+                      <span className="font-mono text-amber-300">{agencyMetrics.warning}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Em Desenvolvimento</span>
+                      <span className="font-mono text-cyan-300">{agencyMetrics.dev}</span>
+                    </div>
+                  </div>
+
+                  {/* Saúde Técnica & SEO */}
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Saúde & SEO ({agencyMetrics.monitoredCount} ativos)
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 py-1">
+                      <div className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-center">
+                        <span className="text-[10px] text-slate-400 block">Média Perf</span>
+                        <span className="text-sm font-bold font-mono text-white">{agencyMetrics.avgPerf}</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-center">
+                        <span className="text-[10px] text-slate-400 block">Média SEO</span>
+                        <span className="text-sm font-bold font-mono text-emerald-400">{agencyMetrics.avgSeo}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">GA4 Pendentes</span>
+                      <span className="font-mono text-rose-400">{agencyMetrics.missingGa4}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">GSC Pendentes</span>
+                      <span className="font-mono text-amber-300">{agencyMetrics.missingGsc}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Sem Sitemap</span>
+                      <span className="font-mono text-amber-300">{agencyMetrics.missingSitemap}</span>
+                    </div>
+                    {agencyMetrics.skippedSeo > 0 && (
+                      <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                        <span className="text-slate-500">SEO Desativado</span>
+                        <span className="font-mono text-slate-400">{agencyMetrics.skippedSeo}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tráfego Consolidado */}
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Tráfego Consolidado
+                    </p>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Cliques Totais</span>
+                      <span className="font-mono text-white">{agencyMetrics.totalClicks}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Cliques WhatsApp</span>
+                      <span className="font-mono text-emerald-400">{agencyMetrics.totalWhatsApp}</span>
+                    </div>
+                  </div>
+
+                  {/* Arquitetura & Operação */}
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Infra & Operação
+                    </p>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Rotas Mapeadas</span>
+                      <span className="font-mono text-slate-200">{agencyMetrics.totalRoutes}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Serviços de Infra</span>
+                      <span className="font-mono text-slate-200">{agencyMetrics.totalInfra}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Migrações de Domínio</span>
+                      <span className="font-mono text-cyan-300">{agencyMetrics.pendingMigrations}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Lembretes Pendentes</span>
+                      <span className="font-mono text-amber-300">{agencyMetrics.pendingRem}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Lembretes Concluídos</span>
+                      <span className="font-mono text-slate-400">{agencyMetrics.doneRem}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-400">Snippets / Refs</span>
+                      <span className="font-mono text-slate-300">
+                        {snippetsList.length} / {referencesList.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Categorias */}
+                  {agencyMetrics.byCategory.length > 0 && (
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        Por Categoria
+                      </p>
+                      {agencyMetrics.byCategory.map(([cat, count]) => (
+                        <div key={cat} className="flex justify-between text-xs">
+                          <span className="text-slate-400 truncate pr-2">{cat}</span>
+                          <span className="font-mono text-slate-200">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </aside>
+          )}
+
+          {/* TRILHO VERTICAL DE ÍCONES (SEMPRE VISÍVEL PARA ALTERNAR OU MINIMIZAR) */}
+          <div className="flex flex-col items-center gap-2 py-2.5 px-1.5 rounded-2xl backdrop-blur-xl bg-slate-950/75 border border-white/10 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleSidePanel('filters')}
+              title={activeSidePanel === 'filters' ? 'Minimizar Filtros' : 'Abrir Filtros'}
+              className={`relative p-2.5 rounded-xl border transition ${
+                activeSidePanel === 'filters'
+                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40'
+                  : 'bg-white/[0.03] text-slate-400 border-transparent hover:text-white hover:bg-white/[0.07]'
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              {hasActiveFilters && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cyan-400" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toggleSidePanel('summary')}
+              title={activeSidePanel === 'summary' ? 'Minimizar Resumo da Agência' : 'Abrir Resumo da Agência'}
+              className={`relative p-2.5 rounded-xl border transition ${
+                activeSidePanel === 'summary'
+                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40'
+                  : 'bg-white/[0.03] text-slate-400 border-transparent hover:text-white hover:bg-white/[0.07]'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              {agencyMetrics.pendingRem > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-400" />
+              )}
+            </button>
           </div>
-
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setCategoryChip('Todos');
-              setStageFilter('all');
-              setAuditFilter('all');
-            }}
-            className="w-full mt-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs text-slate-300 hover:text-white border border-white/10 transition"
-          >
-            Limpar Filtros
-          </button>
-        </aside>
+        </div>
       </div>
 
       {/* =====================================================================
@@ -3431,7 +3863,32 @@ export default function ProjectWorkspaceHub() {
               {/* ABA 4: LIGHTHOUSE & RELATÓRIO GA4 */}
               {editorTab === 'seo' && (
                 <div className="space-y-6">
-                  <div>
+                  <label className="flex items-start gap-3 p-3.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer hover:border-cyan-500/30 transition">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(draftProject.health?.skipSeo)}
+                      onChange={(e) =>
+                        setDraftProject({
+                          ...draftProject,
+                          health: {
+                            ...draftProject.health,
+                            skipSeo: e.target.checked
+                          }
+                        })
+                      }
+                      className="mt-0.5 accent-cyan-400"
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-white">
+                        Não monitorar SEO, Lighthouse ou Indexação neste projeto
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Ideal para web apps internos, sistemas com login ou páginas de link onde GA4, GSC, sitemap e robots.txt não são exigidos.
+                      </p>
+                    </div>
+                  </label>
+
+                  <div className={draftProject.health?.skipSeo ? 'opacity-40 pointer-events-none' : ''}>
                     <h3 className="text-sm font-bold text-white mb-3">Notas do Google Lighthouse (0 a 100)</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
@@ -3677,6 +4134,64 @@ export default function ProjectWorkspaceHub() {
           </div>
         </div>
       )}
+
+      {/* =====================================================================
+          MODAL 3: CONFIRMAÇÃO DE EXCLUSÃO
+      ===================================================================== */}
+      {confirmDialog && (
+        <div
+          onClick={() => setConfirmDialog(null)}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 backdrop-blur-md p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl bg-slate-950 border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.85)] overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-white">{confirmDialog.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <p className="text-xs text-slate-300 leading-relaxed">{confirmDialog.description}</p>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDialog(null)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-slate-300 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const action = confirmDialog.onConfirm;
+                    setConfirmDialog(null);
+                    action?.();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-semibold text-xs flex items-center gap-1.5 transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{confirmDialog.confirmLabel || 'Excluir'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

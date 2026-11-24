@@ -10,32 +10,37 @@ class ProjectAuditService
 {
     public function auditProject(Project $project): Project
     {
+        if (!empty($project->health['skipSeo'])) {
+            return $project;
+        }
+        
         $domain = trim($project->domain['current'] ?? '');
 
         if (empty($domain)) {
             return $project;
         }
 
-        // Garante que a URL tenha protocolo e sem barra extra no final
-        $baseUrl = str_starts_with($domain, 'http') ? rtrim($domain, '/') : "https://" . rtrim($domain, '/');
+        // Garante protocolo e remove barra extra no final
+        $baseUrl = str_starts_with($domain, 'http') ? rtrim($domain, '/') : 'https://' . rtrim($domain, '/');
 
         $health = $project->health ?? [
             'lighthouse' => ['perf' => 0, 'seo' => 0, 'best' => 0, 'a11y' => 0],
             'tools' => ['ga4' => false, 'gsc' => false, 'sitemap' => false, 'robots' => false],
         ];
+        $health['audit_error'] = null;
 
         // 1. Checar HTML principal para detectar Google Analytics (GA4 / GTM)
         try {
             $homeResponse = Http::timeout(10)->withHeaders([
-                'User-Agent' => 'SevWorkspaceAuditor/1.0'
+                'User-Agent' => 'SevWorkspaceAuditor/1.0',
             ])->get($baseUrl);
 
             if ($homeResponse->successful()) {
                 $html = $homeResponse->body();
                 $hasGa4 = str_contains($html, 'googletagmanager.com/gtag/js')
-                       || str_contains($html, 'gtag(')
-                       || preg_match('/G-[A-Z0-9]{6,12}/', $html)
-                       || preg_match('/GTM-[A-Z0-9]{4,10}/', $html);
+                    || str_contains($html, 'gtag(')
+                    || preg_match('/G-[A-Z0-9]{6,12}/', $html)
+                    || preg_match('/GTM-[A-Z0-9]{4,10}/', $html);
 
                 $health['tools']['ga4'] = (bool) $hasGa4;
             }
@@ -46,7 +51,7 @@ class ProjectAuditService
         // 2. Checar existência real de robots.txt
         try {
             $robotsRes = Http::timeout(8)->get("{$baseUrl}/robots.txt");
-            $contentType = $robotsRes->header('Content-Type');
+            $contentType = (string) $robotsRes->header('Content-Type');
             $health['tools']['robots'] = $robotsRes->successful() && str_contains(strtolower($contentType), 'text/plain');
         } catch (\Throwable $e) {
             $health['tools']['robots'] = false;
@@ -67,15 +72,14 @@ class ProjectAuditService
         try {
             $queryParams = [
                 'url' => $baseUrl,
-                'strategy' => 'desktop', // Pode mudar para 'mobile' se preferir auditar mobile
+                'strategy' => 'desktop',
             ];
 
-            $apiKey = config('services.pagespeed.key') ?: env('PAGESPEED_API_KEY');
+            $apiKey = config('services.pagespeed.key');
             if (!empty($apiKey)) {
                 $queryParams['key'] = $apiKey;
             }
 
-            // Monta a query string com múltiplas categorias exigidas pelo Google
             $queryUrl = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed?'
                 . http_build_query($queryParams)
                 . '&category=PERFORMANCE&category=SEO&category=BEST_PRACTICES&category=ACCESSIBILITY';
@@ -93,9 +97,12 @@ class ProjectAuditService
                     ];
                 }
             } else {
-                Log::warning("PageSpeed retornou status " . $psiRes->status() . ": " . $psiRes->body());
+                $errorMsg = $psiRes->json('error.message') ?? ('HTTP ' . $psiRes->status());
+                $health['audit_error'] = "PageSpeed ({$psiRes->status()}): {$errorMsg}";
+                Log::warning("PageSpeed retornou status {$psiRes->status()}: " . $psiRes->body());
             }
         } catch (\Throwable $e) {
+            $health['audit_error'] = 'Falha na conexão com PageSpeed: ' . $e->getMessage();
             Log::warning("Timeout ou falha na API PageSpeed para {$baseUrl}: " . $e->getMessage());
         }
 
@@ -108,6 +115,7 @@ class ProjectAuditService
         $project->update([
             'health' => $health,
             'status' => $status,
+            'last_audited_at' => now(),
         ]);
 
         return $project->fresh();
