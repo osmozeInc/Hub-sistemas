@@ -10,7 +10,8 @@ class ProjectAuditService
 {
     public function auditProject(Project $project): Project
     {
-        if (!empty($project->health['skipSeo'])) {
+        $skipLighthouse = $project->health['skipLighthouse'] ?? ($project->health['skipSeo'] ?? false);
+        if ($skipLighthouse) {
             return $project;
         }
         

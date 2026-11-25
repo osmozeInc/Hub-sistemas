@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   
-  Sparkles, Bell, BookOpen, Bookmark, ExternalLink,
+  Sparkles, Bell, BookOpen, Bookmark, ExternalLink, StickyNote,
   Copy, Check, Globe, ShieldCheck, AlertCircle, Layers,
   ArrowUpRight, Filter, Gauge, FileCode, CalendarClock,
   Terminal, Palette, Search, Plus, CheckCircle2,
   Circle, Send, RotateCcw, Trash2, RefreshCw, Edit3, X, Save, Eye, EyeOff, Menu, Lock, Unlock,
-  ChevronDown, ChevronRight, BarChart3
+  ChevronDown, ChevronRight, BarChart3, ArrowUpDown, ArrowUp, ArrowDown, GripVertical
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL + 'api/workspace';
@@ -256,7 +256,10 @@ const EMPTY_PROJECT_TEMPLATE = {
       notes: ''
     }
   ],
+  notes: '',
   health: {
+    skipLighthouse: false,
+    skipIndexing: false,
     lighthouse: { perf: 0, seo: 0, best: 0, a11y: 0 },
     tools: { ga4: false, gsc: false, sitemap: false, robots: false }
   },
@@ -280,9 +283,57 @@ const getStageMeta = (status) => {
   return { label: status || 'Customizado', dot: 'bg-cyan-400', badge: status || 'Ativo' };
 };
 
+const isLighthouseSkipped = (health) => Boolean(health?.skipLighthouse ?? health?.skipSeo);
+const isIndexingSkipped = (health) => Boolean(health?.skipIndexing ?? health?.skipSeo);
+
+const getStagePriority = (status) => {
+  const s = (status || '').toLowerCase();
+  if (s === 'warning' || s.includes('pend') || s.includes('alerta') || s.includes('revis')) return 0;
+  if (s === 'dev' || s.includes('dev') || s.includes('desenv') || s.includes('homolog')) return 1;
+  if (s === 'test' || s.includes('test')) return 2;
+  if (s === 'active' || s.includes('saud') || s.includes('online') || s.includes('prod')) return 3;
+  return 4;
+};
+
+const getProjectCompleteness = (p) => {
+  const checks = [
+    Boolean(p.subtitle?.trim()),
+    Boolean(p.domain?.current?.trim()),
+    Array.isArray(p.dossier) && p.dossier.some((d) => d.value && String(d.value).trim() !== ''),
+    Array.isArray(p.palette) && p.palette.length > 0,
+    Array.isArray(p.routes) && p.routes.length > 0,
+    Array.isArray(p.infrastructure) && p.infrastructure.length > 0,
+    Boolean(p.notes?.trim())
+  ];
+
+  if (!isIndexingSkipped(p.health)) {
+    checks.push(
+      Boolean(p.health?.tools?.ga4),
+      Boolean(p.health?.tools?.gsc),
+      Boolean(p.health?.tools?.sitemap),
+      Boolean(p.health?.tools?.robots)
+    );
+  }
+
+  if (!isLighthouseSkipped(p.health)) {
+    const lh = p.health?.lighthouse || {};
+    checks.push((lh.perf || 0) + (lh.seo || 0) + (lh.best || 0) + (lh.a11y || 0) > 0);
+  }
+
+  const done = checks.filter(Boolean).length;
+  return Math.round((done / checks.length) * 100);
+};
+
+const getLighthouseAvg = (p) => {
+  if (isLighthouseSkipped(p.health)) return -1;
+  const lh = p.health?.lighthouse || {};
+  return Math.round(((lh.perf || 0) + (lh.seo || 0) + (lh.best || 0) + (lh.a11y || 0)) / 4);
+};
+
 const normalizeProject = (p) => ({
   ...p,
   statusText: p.statusText ?? p.status_text ?? 'Ativo',
+  notes: p.notes ?? '',
   analyticsSummary: p.analyticsSummary || p.analytics_summary || {
     period: 'Mês Atual',
     totalClicks: 0,
@@ -348,19 +399,11 @@ function TechnoBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#05070b]">
       {/* Malha de Bolinhas (Dot Matrix) */}
-      <div 
-        className="absolute inset-0 opacity-[0.25]" 
+      <div
+        className="absolute inset-0 opacity-[0.25]"
         style={{
           backgroundImage: 'radial-gradient(circle at center, #06B6D4 1px, transparent 1px)',
           backgroundSize: '24px 24px'
-        }}
-      />
-      {/* Grid de Linhas Topográficas */}
-      <div 
-        className="absolute inset-0 opacity-[0.04]" 
-        style={{
-          backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
-          backgroundSize: '96px 96px'
         }}
       />
       {/* Globos de Luz Pulsantes (Animação Nativa) */}
@@ -667,6 +710,7 @@ function WorkspaceSkeleton({ activeSidePanel }) {
           <div className="flex flex-col items-center gap-2 py-2.5 px-1.5 rounded-2xl bg-slate-950/75 border border-white/10 shrink-0">
             <div className="w-9 h-9 rounded-xl bg-cyan-500/15" />
             <div className="w-9 h-9 rounded-xl bg-white/[0.05]" />
+            <div className="w-9 h-9 rounded-xl bg-white/[0.05]" />
           </div>
         </div>
       </div>
@@ -733,6 +777,62 @@ export default function ProjectWorkspaceHub() {
     setOpenFilterSections((prev) => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   };
 
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem('sev_sort_by') || 'updated_at');
+  const [sortDir, setSortDir] = useState(() => localStorage.getItem('sev_sort_dir') || 'desc');
+  const [customProjectOrder, setCustomProjectOrder] = useState(() => {
+    const saved = localStorage.getItem('sev_custom_project_order');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [draggedProjectId, setDraggedProjectId] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem('sev_sort_by', sortBy);
+    localStorage.setItem('sev_sort_dir', sortDir);
+  }, [sortBy, sortDir]);
+
+  const handleSelectSort = (key, defaultDir) => {
+    if (sortBy === key && key !== 'custom') {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      if (defaultDir) setSortDir(defaultDir);
+    }
+  };
+
+  const getFullCustomOrder = () => {
+    const allIds = projects.map((p) => p.id);
+    const validSaved = customProjectOrder.filter((id) => allIds.includes(id));
+    const missing = allIds.filter((id) => !validSaved.includes(id));
+    return [...validSaved, ...missing];
+  };
+
+  const saveCustomOrder = (nextOrder) => {
+    setCustomProjectOrder(nextOrder);
+    localStorage.setItem('sev_custom_project_order', JSON.stringify(nextOrder));
+  };
+
+  const moveCustomOrder = (id, delta) => {
+    const order = getFullCustomOrder();
+    const idx = order.indexOf(id);
+    const targetIdx = idx + delta;
+    if (idx < 0 || targetIdx < 0 || targetIdx >= order.length) return;
+    const next = [...order];
+    [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
+    saveCustomOrder(next);
+  };
+
+  const reorderCustomProjects = (fromId, toId) => {
+    if (!fromId || !toId || fromId === toId) return;
+    const order = getFullCustomOrder();
+    const fromIdx = order.indexOf(fromId);
+    const toIdx = order.indexOf(toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const next = [...order];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    saveCustomOrder(next);
+  };
+
   const [copiedKey, setCopiedKey] = useState(null);
 
   const [newReminderProjectId, setNewReminderProjectId] = useState('');
@@ -788,6 +888,28 @@ export default function ProjectWorkspaceHub() {
     const fromProjects = projects.map((p) => p.category).filter(Boolean);
     return Array.from(new Set([...customCategories, ...fromProjects]));
   }, [customCategories, projects]);
+
+  const usedByOtherProjectsSet = useMemo(() => {
+    const others = projects.filter(
+      (p) => !(editorMode === 'edit' && p.id === draftProject.id)
+    );
+    return new Set(others.map((p) => (p.category || '').toLowerCase()).filter(Boolean));
+  }, [projects, editorMode, draftProject.id]);
+
+  const modalCategories = useMemo(() => {
+    const fromOtherProjects = projects
+      .filter((p) => !(editorMode === 'edit' && p.id === draftProject.id))
+      .map((p) => p.category)
+      .filter(Boolean);
+
+    return Array.from(
+      new Set([
+        ...customCategories,
+        ...fromOtherProjects,
+        ...(draftProject.category ? [draftProject.category] : [])
+      ])
+    );
+  }, [customCategories, projects, editorMode, draftProject.id, draftProject.category]);
 
   const allStages = useMemo(() => {
     const fromProjects = projects.map((p) => p.status).filter(Boolean);
@@ -858,7 +980,7 @@ export default function ProjectWorkspaceHub() {
   );
 
   const filteredProjects = useMemo(() => {
-    return projects.filter((p) => {
+    const filtered = projects.filter((p) => {
       const matchesSearch =
         p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (p.subtitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -873,7 +995,7 @@ export default function ProjectWorkspaceHub() {
 
       const matchesAudit =
         auditFilter === 'all' ||
-        (!p.health?.skipSeo && (
+        (!isIndexingSkipped(p.health) && (
           (auditFilter === 'missing_ga4' && !p.health?.tools?.ga4) ||
           (auditFilter === 'gsc_verified' && p.health?.tools?.gsc) ||
           (auditFilter === 'missing_sitemap' && !p.health?.tools?.sitemap)
@@ -881,7 +1003,48 @@ export default function ProjectWorkspaceHub() {
 
       return matchesSearch && matchesChip && matchesStage && matchesAudit;
     });
-  }, [projects, searchQuery, categoryChip, stageFilter, auditFilter]);
+
+    const mult = sortDir === 'asc' ? 1 : -1;
+
+    return filtered.sort((a, b) => {
+      if (sortBy === 'custom') {
+        const idxA = customProjectOrder.indexOf(a.id);
+        const idxB = customProjectOrder.indexOf(b.id);
+        if (idxA === -1 && idxB === -1) return 0;
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+      }
+      if (sortBy === 'name') {
+        return (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base' }) * mult;
+      }
+      if (sortBy === 'completeness') {
+        return (getProjectCompleteness(a) - getProjectCompleteness(b)) * mult;
+      }
+      if (sortBy === 'stage') {
+        return (getStagePriority(a.status) - getStagePriority(b.status)) * mult;
+      }
+      if (sortBy === 'lighthouse') {
+        const avgA = getLighthouseAvg(a);
+        const avgB = getLighthouseAvg(b);
+        if (avgA === -1 && avgB === -1) return 0;
+        if (avgA === -1) return 1;
+        if (avgB === -1) return -1;
+        return (avgA - avgB) * mult;
+      }
+      if (sortBy === 'created_at') {
+        return (Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0)) * mult;
+      }
+      // Padrão: updated_at
+      return (Date.parse(a.updated_at || a.created_at || 0) - Date.parse(b.updated_at || b.created_at || 0)) * mult;
+    });
+  }, [projects, searchQuery, categoryChip, stageFilter, auditFilter, sortBy, sortDir, customProjectOrder]);
+
+  const customOrderedProjects = useMemo(() => {
+    const order = getFullCustomOrder();
+    const map = new Map(projects.map((p) => [p.id, p]));
+    return order.map((id) => map.get(id)).filter(Boolean);
+  }, [projects, customProjectOrder]);
 
   const hasActiveFilters =
     stageFilter !== 'all' ||
@@ -895,18 +1058,19 @@ export default function ProjectWorkspaceHub() {
     const warning = projects.filter((p) => p.status === 'warning').length;
     const dev = projects.filter((p) => p.status === 'dev').length;
 
-    const monitored = projects.filter((p) => !p.health?.skipSeo);
-    const skippedSeo = total - monitored.length;
+    const monitoredLighthouse = projects.filter((p) => !isLighthouseSkipped(p.health));
+    const monitoredIndexing = projects.filter((p) => !isIndexingSkipped(p.health));
+    const skippedSeo = projects.filter((p) => isLighthouseSkipped(p.health) && isIndexingSkipped(p.health)).length;
 
-    const missingGa4 = monitored.filter((p) => !p.health?.tools?.ga4).length;
-    const missingGsc = monitored.filter((p) => !p.health?.tools?.gsc).length;
-    const missingSitemap = monitored.filter((p) => !p.health?.tools?.sitemap).length;
+    const missingGa4 = monitoredIndexing.filter((p) => !p.health?.tools?.ga4).length;
+    const missingGsc = monitoredIndexing.filter((p) => !p.health?.tools?.gsc).length;
+    const missingSitemap = monitoredIndexing.filter((p) => !p.health?.tools?.sitemap).length;
 
-    const avgPerf = monitored.length
-      ? Math.round(monitored.reduce((acc, p) => acc + (p.health?.lighthouse?.perf || 0), 0) / monitored.length)
+    const avgPerf = monitoredLighthouse.length
+      ? Math.round(monitoredLighthouse.reduce((acc, p) => acc + (p.health?.lighthouse?.perf || 0), 0) / monitoredLighthouse.length)
       : 0;
-    const avgSeo = monitored.length
-      ? Math.round(monitored.reduce((acc, p) => acc + (p.health?.lighthouse?.seo || 0), 0) / monitored.length)
+    const avgSeo = monitoredLighthouse.length
+      ? Math.round(monitoredLighthouse.reduce((acc, p) => acc + (p.health?.lighthouse?.seo || 0), 0) / monitoredLighthouse.length)
       : 0;
 
     const totalRoutes = projects.reduce((acc, p) => acc + (p.routes?.length || 0), 0);
@@ -927,7 +1091,7 @@ export default function ProjectWorkspaceHub() {
 
     return {
       total, active, warning, dev,
-      monitoredCount: monitored.length, skippedSeo,
+      monitoredCount: monitoredLighthouse.length, skippedSeo,
       missingGa4, missingGsc, missingSitemap,
       avgPerf, avgSeo,
       totalRoutes, totalInfra, pendingMigrations,
@@ -959,7 +1123,7 @@ export default function ProjectWorkspaceHub() {
 
   const pendingRemindersCount = reminders.filter((r) => !r.completed).length;
 
-  const handleAddCustomCategory = () => {
+ const handleAddCustomCategory = () => {
     const val = newCategoryInput.trim();
     if (!val) return;
     const updated = Array.from(new Set([...customCategories, val]));
@@ -968,6 +1132,23 @@ export default function ProjectWorkspaceHub() {
     setDraftProject({ ...draftProject, category: val });
     setNewCategoryInput('');
     setIsAddingCategory(false);
+  };
+
+  const handleDeleteCustomCategory = (catToDelete) => {
+    if (!catToDelete || usedByOtherProjectsSet.has(catToDelete.toLowerCase())) return;
+    if (modalCategories.length <= 1) return;
+
+    const updated = customCategories.filter((c) => c.toLowerCase() !== catToDelete.toLowerCase());
+    setCustomCategories(updated);
+    localStorage.setItem('sev_custom_categories', JSON.stringify(updated));
+
+    if (draftProject.category === catToDelete) {
+      const fallback = modalCategories.find((c) => c !== catToDelete) || '';
+      setDraftProject({ ...draftProject, category: fallback });
+    }
+    if (categoryChip === catToDelete) {
+      setCategoryChip('Todos');
+    }
   };
 
   const handleAddCustomStage = () => {
@@ -1573,7 +1754,8 @@ export default function ProjectWorkspaceHub() {
                     { id: 'overview', label: 'Visão 360°' },
                     { id: 'ficha', label: 'Ficha & Paleta' },
                     { id: 'architecture', label: 'Rotas & Infra' },
-                    { id: 'seo', label: 'Saúde & SEO' }
+                    { id: 'seo', label: 'Saúde & SEO' },
+                    { id: 'notes', label: 'Anotações' }
                   ].map((sub) => (
                     <button
                       key={sub.id}
@@ -2087,15 +2269,15 @@ export default function ProjectWorkspaceHub() {
                         projectSubTab === 'seo' ? 'xl:col-span-3' : 'xl:col-span-1'
                       } p-4 sm:p-5 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-5`}
                     >
-                      {selectedProject.health?.skipSeo ? (
+                      {isLighthouseSkipped(selectedProject.health) && isIndexingSkipped(selectedProject.health) ? (
                         <div className="flex flex-col items-center justify-center text-center py-10 px-4 space-y-3 my-auto">
                           <Gauge className="w-7 h-7 text-slate-600" />
                           <div className="space-y-1">
                             <p className="text-xs font-semibold text-slate-300">
-                              SEO & Indexação não aplicáveis
+                              Saúde & SEO desativados
                             </p>
                             <p className="text-[11px] text-slate-500 max-w-xs">
-                              Auditoria de Lighthouse, GA4, GSC, sitemap e robots.txt desativada para este projeto.
+                              Lighthouse e Indexação estão desativados para este projeto.
                             </p>
                           </div>
                           {canEdit && (
@@ -2112,91 +2294,184 @@ export default function ProjectWorkspaceHub() {
                           )}
                         </div>
                       ) : (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                            <Gauge className="w-4 h-4 text-emerald-400" />
-                            <span>Lighthouse Scores</span>
-                          </h2>
-                          {canEdit && projectSubTab === 'seo' && (
+                        <div>
+                          {/* Bloco Lighthouse */}
+                          {isLighthouseSkipped(selectedProject.health) ? (
+                            <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 mb-5 flex items-center justify-between gap-2">
+                              <div>
+                                <p className="text-xs font-semibold text-slate-300">Lighthouse desativado</p>
+                                <p className="text-[11px] text-slate-500">Métricas de auditoria não monitoradas.</p>
+                              </div>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openEditModal(selectedProject);
+                                    setEditorTab('seo');
+                                  }}
+                                  className="text-[11px] text-cyan-400 hover:text-cyan-300 underline shrink-0"
+                                >
+                                  Configurar
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                                  <Gauge className="w-4 h-4 text-emerald-400" />
+                                  <span>Lighthouse Scores</span>
+                                </h2>
+                                {canEdit && projectSubTab === 'seo' && (
+                                  <button
+                                    onClick={triggerLiveAudit}
+                                    disabled={isAuditing}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[10px] font-mono text-emerald-300 flex items-center gap-1 transition"
+                                  >
+                                    <RefreshCw className={`w-3 h-3 ${isAuditing ? 'animate-spin' : ''}`} />
+                                    <span>{isAuditing ? 'Auditando...' : 'Auditar URL'}</span>
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2.5 mb-5">
+                                <CircularLighthouseGauge score={selectedProject.health.lighthouse.perf} label="Performance" />
+                                <CircularLighthouseGauge score={selectedProject.health.lighthouse.seo} label="SEO" />
+                                <CircularLighthouseGauge score={selectedProject.health.lighthouse.best} label="Best Practices" />
+                                <CircularLighthouseGauge score={selectedProject.health.lighthouse.a11y} label="Acessibilidade" />
+                              </div>
+                            </>
+                          )}
+
+                          {/* Bloco Switches de Indexação */}
+                          {isIndexingSkipped(selectedProject.health) ? (
+                            <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between gap-2">
+                              <div>
+                                <p className="text-xs font-semibold text-slate-300">Indexação & Tags desativadas</p>
+                                <p className="text-[11px] text-slate-500">GA4, GSC, sitemap e robots.txt ignorados.</p>
+                              </div>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openEditModal(selectedProject);
+                                    setEditorTab('seo');
+                                  }}
+                                  className="text-[11px] text-cyan-400 hover:text-cyan-300 underline shrink-0"
+                                >
+                                  Configurar
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                  Switches de Indexação & Tags
+                                </span>
+                                <span className="text-[10px] text-slate-500">
+                                  {canEdit ? 'Salvo no Postgres' : 'Somente Leitura'}
+                                </span>
+                              </div>
+
+                              {[
+                                { key: 'ga4', label: 'Google Analytics 4 (GA4)', desc: 'Rastreamento de tráfego e cliques' },
+                                { key: 'gsc', label: 'Google Search Console', desc: 'Propriedade verificada no Google' },
+                                { key: 'sitemap', label: 'Arquivo sitemap.xml', desc: 'Índice de rotas enviado ao GSC' },
+                                { key: 'robots', label: 'Arquivo robots.txt', desc: 'Permissões de crawling ativas' }
+                              ].map((tool) => {
+                                const isActive = selectedProject.health.tools[tool.key];
+                                return (
+                                  <button
+                                    key={tool.key}
+                                    type="button"
+                                    onClick={() => toggleHealthTool(tool.key)}
+                                    className={`w-full p-2.5 rounded-xl border text-left transition flex items-center justify-between ${
+                                      !canEdit ? 'cursor-default' : ''
+                                    } ${
+                                      isActive
+                                        ? 'bg-emerald-950/20 border-emerald-500/25 hover:border-emerald-400/50'
+                                        : 'bg-rose-950/20 border-rose-500/25 hover:border-rose-400/50'
+                                    }`}
+                                  >
+                                    <div>
+                                      <p className="text-xs font-medium text-slate-200">{tool.label}</p>
+                                      <p className="text-[10px] text-slate-400">{tool.desc}</p>
+                                    </div>
+
+                                    <div
+                                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 ${
+                                        isActive
+                                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                      }`}
+                                    >
+                                      {isActive ? (
+                                        <>
+                                          <ShieldCheck className="w-3.5 h-3.5" />
+                                          <span>Ativo</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <AlertCircle className="w-3.5 h-3.5" />
+                                          <span>Pendente</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                  )}
+
+                  {/* SUB-ABA: ANOTAÇÕES DO PROJETO */}
+                  {projectSubTab === 'notes' && (
+                    <section className="xl:col-span-3 p-4 sm:p-6 rounded-2xl backdrop-blur-xl bg-white/[0.03] border border-white/10 space-y-4">
+                      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                          <StickyNote className="w-4 h-4 text-cyan-400" />
+                          <span>Anotações do Projeto</span>
+                        </h2>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              openEditModal(selectedProject);
+                              setEditorTab('notas');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-xs text-slate-200 hover:text-cyan-200 flex items-center gap-1.5 transition"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Editar Anotações</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {selectedProject.notes && selectedProject.notes.trim() !== '' ? (
+                        <div className="p-4 rounded-xl bg-black/35 border border-white/5 text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                          {selectedProject.notes}
+                        </div>
+                      ) : (
+                        <div className="p-8 rounded-xl bg-black/25 border border-white/5 text-center space-y-2">
+                          <p className="text-xs text-slate-400">Nenhuma anotação registrada para este projeto.</p>
+                          {canEdit && (
                             <button
-                              onClick={triggerLiveAudit}
-                              disabled={isAuditing}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[10px] font-mono text-emerald-300 flex items-center gap-1 transition"
+                              type="button"
+                              onClick={() => {
+                                openEditModal(selectedProject);
+                                setEditorTab('notas');
+                              }}
+                              className="text-xs text-cyan-400 hover:text-cyan-300 underline"
                             >
-                              <RefreshCw className={`w-3 h-3 ${isAuditing ? 'animate-spin' : ''}`} />
-                              <span>{isAuditing ? 'Auditando...' : 'Auditar URL'}</span>
+                              Adicionar primeira anotação
                             </button>
                           )}
                         </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2.5 mb-5">
-                          <CircularLighthouseGauge score={selectedProject.health.lighthouse.perf} label="Performance" />
-                          <CircularLighthouseGauge score={selectedProject.health.lighthouse.seo} label="SEO" />
-                          <CircularLighthouseGauge score={selectedProject.health.lighthouse.best} label="Best Practices" />
-                          <CircularLighthouseGauge score={selectedProject.health.lighthouse.a11y} label="Acessibilidade" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                              Switches de Indexação & Tags
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                              {canEdit ? 'Salvo no Postgres' : 'Somente Leitura'}
-                            </span>
-                          </div>
-
-                          {[
-                            { key: 'ga4', label: 'Google Analytics 4 (GA4)', desc: 'Rastreamento de tráfego e cliques' },
-                            { key: 'gsc', label: 'Google Search Console', desc: 'Propriedade verificada no Google' },
-                            { key: 'sitemap', label: 'Arquivo sitemap.xml', desc: 'Índice de rotas enviado ao GSC' },
-                            { key: 'robots', label: 'Arquivo robots.txt', desc: 'Permissões de crawling ativas' }
-                          ].map((tool) => {
-                            const isActive = selectedProject.health.tools[tool.key];
-                            return (
-                              <button
-                                key={tool.key}
-                                type="button"
-                                onClick={() => toggleHealthTool(tool.key)}
-                                className={`w-full p-2.5 rounded-xl border text-left transition flex items-center justify-between ${
-                                  !canEdit ? 'cursor-default' : ''
-                                } ${
-                                  isActive
-                                    ? 'bg-emerald-950/20 border-emerald-500/25 hover:border-emerald-400/50'
-                                    : 'bg-rose-950/20 border-rose-500/25 hover:border-rose-400/50'
-                                }`}
-                              >
-                                <div>
-                                  <p className="text-xs font-medium text-slate-200">{tool.label}</p>
-                                  <p className="text-[10px] text-slate-400">{tool.desc}</p>
-                                </div>
-
-                                <div
-                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 ${
-                                    isActive
-                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                  }`}
-                                >
-                                  {isActive ? (
-                                    <>
-                                      <ShieldCheck className="w-3.5 h-3.5" />
-                                      <span>Ativo</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <AlertCircle className="w-3.5 h-3.5" />
-                                      <span>Pendente</span>
-                                    </>
-                                  )}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                      )}
                     </section>
                   )}
                 </div>
@@ -2925,6 +3200,163 @@ export default function ProjectWorkspaceHub() {
                 </>
               )}
 
+              {/* ABA: ORDENAÇÃO */}
+              {activeSidePanel === 'sort' && (
+                <div className="flex flex-col justify-between h-full space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-200">
+                        <ArrowUpDown className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Ordenação</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSidePanel(null)}
+                        title="Minimizar painel"
+                        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Critérios */}
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                        Ordenar projetos por
+                      </p>
+                      {[
+                        { id: 'updated_at', label: 'Data de modificação', defaultDir: 'desc' },
+                        { id: 'created_at', label: 'Data de criação', defaultDir: 'desc' },
+                        { id: 'name', label: 'Nome (A–Z)', defaultDir: 'asc' },
+                        { id: 'completeness', label: 'Completude (%)', defaultDir: 'desc' },
+                        { id: 'stage', label: 'Prioridade / Estágio', defaultDir: 'asc' },
+                        { id: 'lighthouse', label: 'Média Lighthouse', defaultDir: 'desc' },
+                        { id: 'custom', label: 'Ordem personalizada', defaultDir: 'asc' }
+                      ].map((opt) => {
+                        const active = sortBy === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleSelectSort(opt.id, opt.defaultDir)}
+                            className={`w-full text-left px-3 py-1.5 rounded-xl text-xs transition flex items-center justify-between gap-2 ${
+                              active
+                                ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-medium'
+                                : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                            }`}
+                          >
+                            <span className="truncate">{opt.label}</span>
+                            {active && opt.id !== 'custom' && (
+                              sortDir === 'asc'
+                                ? <ArrowUp className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                                : <ArrowDown className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Direção (exceto modo personalizado) */}
+                    {sortBy !== 'custom' && (
+                      <div className="pt-3 border-t border-white/5 space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                          Direção
+                        </p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setSortDir('asc')}
+                            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1 border transition ${
+                              sortDir === 'asc'
+                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/35'
+                                : 'bg-white/[0.03] text-slate-400 border-white/5 hover:text-white'
+                            }`}
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                            <span>Crescente</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSortDir('desc')}
+                            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1 border transition ${
+                              sortDir === 'desc'
+                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/35'
+                                : 'bg-white/[0.03] text-slate-400 border-white/5 hover:text-white'
+                            }`}
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                            <span>Decrescente</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Editor da Ordem Personalizada (Drag & Drop + Setas) */}
+                    {sortBy === 'custom' && (
+                      <div className="pt-3 border-t border-white/5 space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                          Arraste ou use as setas
+                        </p>
+                        <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+                          {customOrderedProjects.map((proj, idx) => (
+                            <div
+                              key={proj.id}
+                              draggable
+                              onDragStart={() => setDraggedProjectId(proj.id)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={() => {
+                                reorderCustomProjects(draggedProjectId, proj.id);
+                                setDraggedProjectId(null);
+                              }}
+                              onDragEnd={() => setDraggedProjectId(null)}
+                              className={`flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-xl bg-black/40 border text-xs cursor-grab active:cursor-grabbing transition ${
+                                draggedProjectId === proj.id
+                                  ? 'border-cyan-400/60 opacity-60'
+                                  : 'border-white/10 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <GripVertical className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                <span className="text-[11px] text-slate-200 truncate">{proj.title}</span>
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => moveCustomOrder(proj.id, -1)}
+                                  className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-25"
+                                >
+                                  <ArrowUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === customOrderedProjects.length - 1}
+                                  onClick={() => moveCustomOrder(proj.id, 1)}
+                                  className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-25"
+                                >
+                                  <ArrowDown className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSortBy('updated_at');
+                      setSortDir('desc');
+                    }}
+                    className="w-full mt-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs text-slate-300 hover:text-white border border-white/10 transition shrink-0"
+                  >
+                    Restaurar Padrão
+                  </button>
+                </div>
+              )}
+
               {/* ABA: RESUMO DA AGÊNCIA EXPANDIDO */}
               {activeSidePanel === 'summary' && (
                 <div className="space-y-4">
@@ -3080,6 +3512,19 @@ export default function ProjectWorkspaceHub() {
               {hasActiveFilters && (
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cyan-400" />
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toggleSidePanel('sort')}
+              title={activeSidePanel === 'sort' ? 'Minimizar Ordenação' : 'Abrir Ordenação'}
+              className={`relative p-2.5 rounded-xl border transition ${
+                activeSidePanel === 'sort'
+                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40'
+                  : 'bg-white/[0.03] text-slate-400 border-transparent hover:text-white hover:bg-white/[0.07]'
+              }`}
+            >
+              <ArrowUpDown className="w-4 h-4" />
             </button>
 
             <button
@@ -3247,7 +3692,8 @@ export default function ProjectWorkspaceHub() {
                 { id: 'geral', label: '1. Geral & Domínios' },
                 { id: 'ficha', label: '2. Ficha & Paleta' },
                 { id: 'rotas', label: '3. Rotas & Infra' },
-                { id: 'seo', label: '4. Lighthouse & GA4' }
+                { id: 'seo', label: '4. Lighthouse & GA4' },
+                { id: 'notas', label: '5. Anotações' }
               ].map((t) => (
                 <button
                   key={t.id}
@@ -3321,17 +3767,35 @@ export default function ProjectWorkspaceHub() {
                         </button>
                       </div>
                     ) : (
-                      <select
-                        value={draftProject.category}
-                        onChange={(e) => setDraftProject({ ...draftProject, category: e.target.value })}
-                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
-                      >
-                        {allCategories.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex gap-2">
+                        <select
+                          value={draftProject.category || ''}
+                          onChange={(e) => setDraftProject({ ...draftProject, category: e.target.value })}
+                          className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                        >
+                          {modalCategories.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          disabled={
+                            usedByOtherProjectsSet.has((draftProject.category || '').toLowerCase()) ||
+                            modalCategories.length <= 1
+                          }
+                          onClick={() => handleDeleteCustomCategory(draftProject.category)}
+                          title={
+                            usedByOtherProjectsSet.has((draftProject.category || '').toLowerCase())
+                              ? 'Categoria em uso por outro projeto'
+                              : `Excluir categoria "${draftProject.category}"`
+                          }
+                          className="px-2.5 py-2 rounded-xl bg-white/[0.04] hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/35 text-slate-400 hover:text-rose-300 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -3760,7 +4224,7 @@ export default function ProjectWorkspaceHub() {
                               <option value="Backend">Backend / API</option>
                               <option value="Frontend">Frontend / Estático</option>
                               <option value="VPS / Cloud">VPS / Máquina Virtual</option>
-                              <option value="Storage / CDN">Storage / DNS / CDN</option>
+                              <option value="Storage / CDN">Storage / CDN</option>
                             </select>
 
                             <input
@@ -3863,32 +4327,59 @@ export default function ProjectWorkspaceHub() {
               {/* ABA 4: LIGHTHOUSE & RELATÓRIO GA4 */}
               {editorTab === 'seo' && (
                 <div className="space-y-6">
-                  <label className="flex items-start gap-3 p-3.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer hover:border-cyan-500/30 transition">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(draftProject.health?.skipSeo)}
-                      onChange={(e) =>
-                        setDraftProject({
-                          ...draftProject,
-                          health: {
-                            ...draftProject.health,
-                            skipSeo: e.target.checked
-                          }
-                        })
-                      }
-                      className="mt-0.5 accent-cyan-400"
-                    />
-                    <div>
-                      <p className="text-xs font-semibold text-white">
-                        Não monitorar SEO, Lighthouse ou Indexação neste projeto
-                      </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Ideal para web apps internos, sistemas com login ou páginas de link onde GA4, GSC, sitemap e robots.txt não são exigidos.
-                      </p>
-                    </div>
-                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="flex items-start gap-3 p-3.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer hover:border-cyan-500/30 transition">
+                      <input
+                        type="checkbox"
+                        checked={isLighthouseSkipped(draftProject.health)}
+                        onChange={(e) =>
+                          setDraftProject({
+                            ...draftProject,
+                            health: {
+                              ...draftProject.health,
+                              skipSeo: false,
+                              skipLighthouse: e.target.checked,
+                              skipIndexing: isIndexingSkipped(draftProject.health)
+                            }
+                          })
+                        }
+                        className="mt-0.5 accent-cyan-400"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-white">Não monitorar Lighthouse</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Desativa notas de Performance, SEO, Boas Práticas e Acessibilidade.
+                        </p>
+                      </div>
+                    </label>
 
-                  <div className={draftProject.health?.skipSeo ? 'opacity-40 pointer-events-none' : ''}>
+                    <label className="flex items-start gap-3 p-3.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer hover:border-cyan-500/30 transition">
+                      <input
+                        type="checkbox"
+                        checked={isIndexingSkipped(draftProject.health)}
+                        onChange={(e) =>
+                          setDraftProject({
+                            ...draftProject,
+                            health: {
+                              ...draftProject.health,
+                              skipSeo: false,
+                              skipLighthouse: isLighthouseSkipped(draftProject.health),
+                              skipIndexing: e.target.checked
+                            }
+                          })
+                        }
+                        className="mt-0.5 accent-cyan-400"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-white">Não monitorar Indexação & Tags</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Ignora GA4, GSC, sitemap.xml e robots.txt na tela e nos filtros.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className={isLighthouseSkipped(draftProject.health) ? 'opacity-40 pointer-events-none' : ''}>
                     <h3 className="text-sm font-bold text-white mb-3">Notas do Google Lighthouse (0 a 100)</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
@@ -3990,6 +4481,25 @@ export default function ProjectWorkspaceHub() {
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* ABA 5: ANOTAÇÕES */}
+              {editorTab === 'notas' && (
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Anotações Internas do Projeto</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Decisões técnicas, histórico de reuniões, pendências com o cliente ou observações de deploy (não aparece no link público do cliente).
+                    </p>
+                  </div>
+                  <textarea
+                    rows={12}
+                    value={draftProject.notes || ''}
+                    onChange={(e) => setDraftProject({ ...draftProject, notes: e.target.value })}
+                    placeholder="Escreva suas anotações sobre este projeto..."
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 leading-relaxed focus:outline-none focus:border-cyan-400/60"
+                  />
                 </div>
               )}
 

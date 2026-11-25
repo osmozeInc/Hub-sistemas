@@ -120,6 +120,7 @@ class WorkspaceController extends Controller
             'dossier' => $request->input('dossier', []),
             'routes' => $request->input('routes', []),
             'infrastructure' => $request->input('infrastructure', []),
+            'notes' => $request->input('notes', ''),
             'health' => $request->input('health', [
                 'lighthouse' => ['perf' => 100, 'seo' => 100, 'best' => 100, 'a11y' => 100],
                 'tools' => ['ga4' => false, 'gsc' => false, 'sitemap' => false, 'robots' => false]

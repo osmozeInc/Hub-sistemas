@@ -13,7 +13,7 @@ class Project extends Model
     protected $fillable = [
         'id', 'title', 'subtitle', 'category', 'status', 'status_text',
         'image', 'ga4_property_id', 'gsc_site_url', 'tags', 'domain', 'infrastructure',
-        'palette', 'dossier', 'routes', 'health', 'analytics_summary', 'last_audited_at'
+        'palette', 'dossier', 'routes', 'health', 'analytics_summary', 'last_audited_at', 'notes'
     ];
 
     protected $casts = [
